@@ -1,0 +1,84 @@
+site_name: Projeto Análise SDR
+site_description: Sistema de análise de conversas de atendimento para extração de insights
+site_author: BC Med Team
+site_url: https://gabrielpastega-bcmed.github.io/projeto_analise_SDR/
+
+repo_name: gabrielpastega-bcmed/projeto_analise_SDR
+repo_url: https://github.com/gabrielpastega-bcmed/projeto_analise_SDR
+
+theme:
+  name: material
+  language: pt-BR
+
+  palette:
+    # Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: purple
+      toggle:
+        icon: material/brightness-4
+        name: Mudar para modo claro
+    # Light mode
+    - scheme: default
+      primary: indigo
+      accent: purple
+      toggle:
+        icon: material/brightness-7
+        name: Mudar para modo escuro
+
+  features:
+    - navigation.instant
+    - navigation.tracking
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.tabs.link
+
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search:
+      lang: pt
+
+markdown_extensions:
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Início: index.md
+  - Guia do Usuário:
+    - Visão Geral: user-guide/overview.md
+    - Dashboard: user-guide/dashboard.md
+    - Métricas: user-guide/metrics.md
+    - FAQ: user-guide/faq.md
+  - Manual Técnico:
+    - Arquitetura: technical/architecture.md
+    - Componentes: technical/components.md
+    - API Reference: technical/api.md
+    - CI/CD: technical/cicd.md
+  - Contribuindo: contributing.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/gabrielpastega-bcmed/projeto_analise_SDR

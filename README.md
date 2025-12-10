@@ -38,8 +38,11 @@ poetry install
 # Execute a análise
 poetry run python main.py
 
-# O relatório será salvo em analysis_report.json
+# Inicie o dashboard interativo
+poetry run streamlit run dashboard.py
 ```
+
+O dashboard estará disponível em `http://localhost:8501`.
 
 ## 🧪 Desenvolvimento
 

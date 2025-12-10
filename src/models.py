@@ -10,6 +10,7 @@ class Organization(BaseModel):
     name: str
     description: Optional[str] = None
 
+
 class Contact(BaseModel):
     id: str
     name: str
@@ -17,16 +18,19 @@ class Contact(BaseModel):
     organization: Optional[Organization] = None
     customFields: Optional[Dict[str, Any]] = None
 
+
 class Agent(BaseModel):
     id: str
     name: str
     email: Optional[str] = None
+
 
 class MessageSender(BaseModel):
     id: str
     name: Optional[str] = None
     email: Optional[str] = None
     type: Optional[str] = None
+
 
 class Message(BaseModel):
     id: str
@@ -40,9 +44,11 @@ class Message(BaseModel):
     # Computed fields for analysis
     is_business_hour: bool = False
 
+
 class ClosedInfo(BaseModel):
     closedAt: datetime
     closedBy: Optional[Agent] = None
+
 
 class Chat(BaseModel):
     id: str
@@ -60,14 +66,22 @@ class Chat(BaseModel):
     duration_seconds: Optional[float] = None
     message_count: int = 0
 
-    @field_validator('contact', mode='before')
+    @field_validator("number", mode="before")
+    @classmethod
+    def parse_number(cls, v: Any) -> str:
+        """Convert number to string if it's an integer."""
+        if isinstance(v, int):
+            return str(v)
+        return v
+
+    @field_validator("contact", mode="before")
     @classmethod
     def parse_contact(cls, v: Any) -> Any:
         if isinstance(v, str):
             return json.loads(v)
         return v
 
-    @field_validator('agent', mode='before')
+    @field_validator("agent", mode="before")
     @classmethod
     def parse_agent(cls, v: Any) -> Any:
         if isinstance(v, str):
@@ -77,14 +91,14 @@ class Chat(BaseModel):
                 return None
         return v
 
-    @field_validator('messages', mode='before')
+    @field_validator("messages", mode="before")
     @classmethod
     def parse_messages(cls, v: Any) -> Any:
         if isinstance(v, str):
             return json.loads(v)
         return v
 
-    @field_validator('closed', mode='before')
+    @field_validator("closed", mode="before")
     @classmethod
     def parse_closed(cls, v: Any) -> Any:
         if isinstance(v, str):
@@ -94,7 +108,7 @@ class Chat(BaseModel):
                 return None
         return v
 
-    @field_validator('tags', mode='before')
+    @field_validator("tags", mode="before")
     @classmethod
     def parse_tags(cls, v: Any) -> Any:
         if isinstance(v, str):

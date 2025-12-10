@@ -1,15 +1,10 @@
 # =======================================================
 # PYTHON CORE & COMPILATION
 # =======================================================
-# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -28,16 +23,10 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-
-# PyInstaller
 *.manifest
 *.spec
-
-# Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
-
-# PyPI configuration file
 .pypirc
 
 # =======================================================
@@ -58,47 +47,28 @@ coverage.xml
 cover/
 
 # =======================================================
-# TRANSLATIONS
-# =======================================================
-*.mo
-*.pot
-
-# =======================================================
 # WEB FRAMEWORKS
 # =======================================================
-# Django
 *.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
-
-# Flask
 instance/
 .webassets-cache
-
-# Scrapy
 .scrapy
-
-# Celery
 celerybeat-schedule
 celerybeat.pid
 
 # =======================================================
 # DOCUMENTATION
 # =======================================================
-# Sphinx
 docs/_build/
-
-# Mkdocs
 /site
 
 # =======================================================
 # DATA SCIENCE & NOTEBOOKS
 # =======================================================
-# Jupyter Notebook
 .ipynb_checkpoints
-
-# IPython
 profile_default/
 ipython_config.py
 
@@ -113,51 +83,30 @@ venv/
 ENV/
 env.bak/
 venv.bak/
-
-# pyenv
 .python-version
 
 # =======================================================
 # PACKAGE MANAGERS
 # =======================================================
-# Poetry - DO NOT ignore poetry.lock for applications!
-# poetry.lock
 poetry.toml
-
-# PDM
 pdm.toml
 .pdm.toml
 .pdm-python
 .pdm-build/
-
-# PEP 582
 __pypackages__/
-
-# PyBuilder
 .pybuilder/
 target/
 
 # =======================================================
 # TYPE CHECKERS & LINTERS
 # =======================================================
-# mypy
 .mypy_cache/
 .dmypy.json
 dmypy.json
-
-# Pyre
 .pyre/
-
-# pytype
 .pytype/
-
-# Ruff
 .ruff_cache/
-
-# Pyright
 pyrightconfig.json
-
-# Cython
 cython_debug/
 
 # =======================================================
@@ -188,3 +137,10 @@ analysis_report.json
 # Debug scripts (development only)
 debug_*.py
 verify_*.py
+
+# Credentials (NEVER commit!)
+credentials/
+*.json
+!data/raw/*.json
+!package.json
+!package-lock.json

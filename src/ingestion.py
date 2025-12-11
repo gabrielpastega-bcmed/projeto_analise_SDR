@@ -89,9 +89,15 @@ def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = 
     query = f"""
     SELECT *
     FROM `{project_id}.{dataset}.{table}`
-    WHERE DATE(firstMessageDate) >= '{start_date_str}'
+    WHERE DATE(firstMessageDate) >= @start_date
     ORDER BY firstMessageDate DESC
-    """
+    """  # nosec
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("start_date", "STRING", start_date_str),
+        ]
+    )
 
     if limit:
         query += f"\nLIMIT {limit}"
@@ -100,7 +106,7 @@ def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = 
     print(f"Date filter: >= {start_date_str} ({analysis_days} days)")
 
     # Execute query
-    query_job = client.query(query)
+    query_job = client.query(query, job_config=job_config)
     results = query_job.result()
 
     # Convert to list of dicts

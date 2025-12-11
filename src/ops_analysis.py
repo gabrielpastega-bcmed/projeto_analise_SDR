@@ -11,7 +11,7 @@ Ele calcula:
 - Frequência de tags
 """
 from datetime import time
-from typing import Any, Dict, List, Tuple, TypedDict
+from typing import Dict, List, Tuple, TypedDict
 
 import pandas as pd
 import pytz

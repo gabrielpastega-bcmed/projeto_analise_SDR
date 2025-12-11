@@ -12,7 +12,7 @@ import streamlit as st
 
 from src.ingestion import load_chats_from_json
 from src.llm_analysis import LLMAnalyzer
-from src.ops_analysis import analyze_heatmap, analyze_tags, calculate_response_times
+from src.ops_analysis import analyze_agent_performance, analyze_heatmap, analyze_tags
 from src.reporting import generate_report
 
 # Set Plotly theme for dark mode
@@ -90,29 +90,41 @@ def load_data(file_path: str):
 @st.cache_data
 def run_analysis(_chats):
     """Run the full analysis pipeline."""
+    # Análise Operacional (em lote)
+    agent_performance = analyze_agent_performance(_chats)
+    heatmap_data = analyze_heatmap(_chats)
+    tags_data = analyze_tags(_chats)
+
+    # Análise com LLM (em paralelo)
     llm_analyzer = LLMAnalyzer()
+    tasks = [llm_analyzer.analyze_chat(chat) for chat in _chats]
+    llm_results_list = asyncio.run(asyncio.gather(*tasks))
+
+    # Combina os resultados
     processed_data = []
-
-    for chat in _chats:
-        ops_metrics = calculate_response_times(chat)
-        # Run async in sync context
-        llm_results = asyncio.run(llm_analyzer.analyze_chat(chat))
-
+    for i, chat in enumerate(_chats):
         processed_data.append(
             {
                 "chat_id": chat.id,
                 "agent_name": chat.agent.name if chat.agent else "Unknown",
                 "contact_name": chat.contact.name,
-                "ops_metrics": ops_metrics,
-                "llm_results": llm_results,
+                "ops_metrics": {},  # Será preenchido pelo relatório
+                "llm_results": llm_results_list[i],
             }
         )
 
-    # Quantitative Analysis
-    heatmap_data = analyze_heatmap(_chats)
-    tags_data = analyze_tags(_chats)
-
     report = generate_report(processed_data)
+
+    # Adiciona as métricas operacionais agregadas de volta aos dados processados
+    agent_perf_map = {p["agent"]: p for p in agent_performance}
+    for item in processed_data:
+        agent_name = item["agent_name"]
+        if agent_name in agent_perf_map:
+            item["ops_metrics"] = {
+                "tme_seconds": agent_perf_map[agent_name].get("avg_tme_seconds", 0),
+                "tma_seconds": agent_perf_map[agent_name].get("avg_tma_seconds", 0),
+            }
+
     return processed_data, report, heatmap_data, tags_data
 
 

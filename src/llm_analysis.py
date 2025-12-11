@@ -8,6 +8,7 @@ Analyze the following chat transcript for Customer Experience (CX).
 Return a JSON object with the following fields:
 - sentiment: "positive", "neutral", or "negative"
 - humanization_score: integer from 1 (robotic) to 5 (very human/personalized)
+- nps_prediction: integer from 0 to 10 (likelihood of recommendation)
 - resolution_status: "resolved", "unresolved", or "pending"
 - satisfaction_comment: Brief explanation of the sentiment.
 
@@ -29,10 +30,22 @@ Transcript:
 PROMPT_SALES = """
 Analyze the following chat transcript for Sales Conversion.
 Return a JSON object with the following fields:
+- funnel_stage: "awareness", "consideration", or "decision"
 - outcome: "converted", "lost", or "in_progress"
 - rejection_reason: If lost, provide the main reason (e.g., "price", "stock",
   "competitor", "no_response"). If not lost, null.
 - next_step: What is the next action item?
+
+Transcript:
+{transcript}
+"""
+
+PROMPT_QA = """
+Analyze the following chat transcript for Quality Assurance (QA).
+Return a JSON object with the following fields:
+- script_adherence: boolean (did the agent ask key qualifying questions?)
+- key_questions_asked: List of strings (e.g., "Clinic or Individual?", "Location?")
+- improvement_areas: List of strings (what could the agent do better?)
 
 Transcript:
 {transcript}
@@ -63,16 +76,15 @@ class LLMAnalyzer:
         # response_cx = await self._call_llm(PROMPT_CX.format(transcript=transcript))
         # response_product = await self._call_llm(PROMPT_PRODUCT.format(transcript=transcript))
         # response_sales = await self._call_llm(PROMPT_SALES.format(transcript=transcript))
+        # response_qa = await self._call_llm(PROMPT_QA.format(transcript=transcript))
 
         # Mocking the response based on the "exemplo.json" content we know
-        # The example chat is about "Ultrassom Microfocado", customer asks price/conditions,
-        # agent sends contact info, customer stops responding? Or conversation ends.
-
         return {
             "cx": {
                 "sentiment": "neutral",
                 "humanization_score": 4,
-                "resolution_status": "resolved",  # Agent gave info
+                "nps_prediction": 8,
+                "resolution_status": "resolved",
                 "satisfaction_comment": "Customer received the requested information.",
             },
             "product": {
@@ -80,7 +92,17 @@ class LLMAnalyzer:
                 "interest_level": "high",
                 "trends": ["Private label results"],
             },
-            "sales": {"outcome": "in_progress", "rejection_reason": None, "next_step": "Specialist contact"},
+            "sales": {
+                "funnel_stage": "consideration",
+                "outcome": "in_progress",
+                "rejection_reason": None,
+                "next_step": "Specialist contact",
+            },
+            "qa": {
+                "script_adherence": True,
+                "key_questions_asked": ["Region", "Equipment Type"],
+                "improvement_areas": ["Could have asked about budget"],
+            },
         }
 
     async def _call_llm(self, prompt: str) -> Dict[str, Any]:

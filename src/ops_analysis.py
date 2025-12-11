@@ -119,3 +119,41 @@ def analyze_agent_performance(chats: List[Chat]) -> List[AgentPerformance]:
         )
 
     return sorted(results, key=lambda x: x["avg_tme_seconds"])  # Sort by fastest response
+
+
+def analyze_heatmap(chats: List[Chat]) -> Dict[str, Dict[int, int]]:
+    """
+    Generates a heatmap of message volume by day of week and hour.
+    Returns:
+        Dict with keys "0" (Mon) to "6" (Sun), each containing a dict of hour (0-23) -> count.
+    """
+    heatmap: Dict[str, Dict[int, int]] = {str(i): {h: 0 for h in range(24)} for i in range(7)}
+
+    for chat in chats:
+        for msg in chat.messages:
+            # Ensure timezone awareness
+            dt = msg.time
+            if dt.tzinfo is None:
+                dt = pytz.utc.localize(dt)
+            dt_local = dt.astimezone(TZ)
+
+            day = str(dt_local.weekday())
+            hour = dt_local.hour
+            heatmap[day][hour] += 1
+
+    return heatmap
+
+
+def analyze_tags(chats: List[Chat]) -> Dict[str, int]:
+    """
+    Counts the frequency of each tag.
+    """
+    tag_counts: Dict[str, int] = {}
+
+    for chat in chats:
+        if chat.tags:
+            for tag in chat.tags:
+                tag_name = tag.get("name", "Unknown")
+                tag_counts[tag_name] = tag_counts.get(tag_name, 0) + 1
+
+    return dict(sorted(tag_counts.items(), key=lambda item: item[1], reverse=True))

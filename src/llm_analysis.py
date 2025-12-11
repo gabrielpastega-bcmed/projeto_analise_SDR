@@ -132,7 +132,7 @@ class LLMAnalyzer:
         await asyncio.sleep(0.1)
 
         # Mock da resposta, baseado no tipo de análise
-        mock_responses = {
+        mock_responses: Dict[str, Dict[str, Any]] = {
             "cx": {
                 "sentiment": "neutro",
                 "humanization_score": 4,

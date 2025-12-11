@@ -6,7 +6,7 @@ import json
 import os
 import re
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, MutableMapping, Optional
+from typing import Any, List, MutableMapping, Optional
 
 from dotenv import load_dotenv
 from google.cloud import bigquery

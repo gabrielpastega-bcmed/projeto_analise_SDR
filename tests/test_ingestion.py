@@ -7,7 +7,6 @@ from unittest.mock import mock_open, patch
 import pytest
 
 from src.ingestion import _anonymize_text, load_chats_from_json
-from src.models import Chat
 
 
 @pytest.mark.parametrize(

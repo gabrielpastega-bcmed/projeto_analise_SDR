@@ -1,5 +1,10 @@
 # Projeto Análise SDR
 
+[![CI](https://github.com/gabrielpastega-empresa/projeto_analise_SDR/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrielpastega-empresa/projeto_analise_SDR/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/gabrielpastega-empresa/projeto_analise_SDR/graph/badge.svg)](https://codecov.io/gh/gabrielpastega-empresa/projeto_analise_SDR)
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+
 Sistema de análise de conversas de atendimento (chat logs) para extração de insights de **CX**, **Inteligência de Produto**, **Performance Operacional** e **Conversão de Vendas**.
 
 ## 🚀 Funcionalidades

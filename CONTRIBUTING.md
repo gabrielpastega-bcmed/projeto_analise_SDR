@@ -97,7 +97,24 @@ docs: atualiza README com instruções do dashboard
 
 5. Aguarde revisão e aprovação
 
-## 📁 Estrutura do Projeto
+## � LGPD e Segurança de Dados
+
+**CRÍTICO**: Este projeto lida com dados sensíveis.
+- **NUNCA** commite dados reais de clientes (PII) no repositório.
+- Use apenas dados fictícios/anonimizados na pasta `data/`.
+- Certifique-se de que o `.gitignore` está bloqueando arquivos de dados reais.
+- Não inclua lógica no código que dependa de PII (ex: verificar e-mail específico).
+
+## 🔖 Versionamento
+
+Seguimos o **Semantic Versioning (SemVer)**: `MAJOR.MINOR.PATCH`
+- `MAJOR`: Mudanças incompatíveis na API/Modelos.
+- `MINOR`: Novas funcionalidades compatíveis com versões anteriores.
+- `PATCH`: Correções de bugs compatíveis com versões anteriores.
+
+A versão é controlada no arquivo `pyproject.toml`.
+
+## �📁 Estrutura do Projeto
 
 ```
 projeto_analise_SDR/

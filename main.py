@@ -28,12 +28,14 @@ async def main():
         # LLM Analysis
         llm_results = await llm_analyzer.analyze_chat(chat)
 
-        processed_data.append({
-            "chat_id": chat.id,
-            "agent_name": chat.agent.name if chat.agent else "Unknown",
-            "ops_metrics": ops_metrics,
-            "llm_results": llm_results
-        })
+        processed_data.append(
+            {
+                "chat_id": chat.id,
+                "agent_name": chat.agent.name if chat.agent else "Unknown",
+                "ops_metrics": ops_metrics,
+                "llm_results": llm_results,
+            }
+        )
 
     # 4. Generate Report
     print("Generating report...")
@@ -44,9 +46,10 @@ async def main():
     print(json.dumps(report, indent=2, ensure_ascii=False))
 
     # Save to file
-    with open("analysis_report.json", "w", encoding='utf-8') as f:
+    with open("analysis_report.json", "w", encoding="utf-8") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
     print("\nReport saved to analysis_report.json")
+
 
 if __name__ == "__main__":
     asyncio.run(main())

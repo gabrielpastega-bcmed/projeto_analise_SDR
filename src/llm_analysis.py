@@ -38,6 +38,7 @@ Transcript:
 {transcript}
 """
 
+
 class LLMAnalyzer:
     def __init__(self, api_key: str = "mock_key"):
         self.api_key = api_key
@@ -45,7 +46,7 @@ class LLMAnalyzer:
     def _format_transcript(self, chat: Chat) -> str:
         lines = []
         for msg in chat.messages:
-            sender = "Agent" if (msg.sentBy and msg.sentBy.type == 'agent') else "Customer"
+            sender = "Agent" if (msg.sentBy and msg.sentBy.type == "agent") else "Customer"
             # Simple HTML tag removal if needed, but LLMs handle it fine usually
             body = msg.body.replace("<p>", "").replace("</p>", "").replace("<br>", "\n")
             lines.append(f"{sender} ({msg.time}): {body}")
@@ -56,7 +57,7 @@ class LLMAnalyzer:
         Orchestrates the analysis by calling the LLM with different prompts.
         For now, this returns MOCK data to demonstrate the structure.
         """
-        transcript = self._format_transcript(chat)
+        _transcript = self._format_transcript(chat)  # noqa: F841 - Used by LLM calls when enabled
 
         # In a real implementation, we would make parallel calls to the LLM here.
         # response_cx = await self._call_llm(PROMPT_CX.format(transcript=transcript))
@@ -71,19 +72,15 @@ class LLMAnalyzer:
             "cx": {
                 "sentiment": "neutral",
                 "humanization_score": 4,
-                "resolution_status": "resolved", # Agent gave info
-                "satisfaction_comment": "Customer received the requested information."
+                "resolution_status": "resolved",  # Agent gave info
+                "satisfaction_comment": "Customer received the requested information.",
             },
             "product": {
                 "products_mentioned": ["Ultrassom Microfocado", "HIFU"],
                 "interest_level": "high",
-                "trends": ["Private label results"]
+                "trends": ["Private label results"],
             },
-            "sales": {
-                "outcome": "in_progress",
-                "rejection_reason": None,
-                "next_step": "Specialist contact"
-            }
+            "sales": {"outcome": "in_progress", "rejection_reason": None, "next_step": "Specialist contact"},
         }
 
     async def _call_llm(self, prompt: str) -> Dict[str, Any]:

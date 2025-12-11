@@ -32,4 +32,5 @@ repos:
         additional_dependencies:
           - pydantic
           - pytz
+          - types-pytz
         args: [--ignore-missing-imports]

@@ -12,7 +12,7 @@ import streamlit as st
 
 from src.ingestion import load_chats_from_json
 from src.llm_analysis import LLMAnalyzer
-from src.ops_analysis import calculate_response_times
+from src.ops_analysis import analyze_heatmap, analyze_tags, calculate_response_times
 from src.reporting import generate_report
 
 # Set Plotly theme for dark mode
@@ -76,7 +76,7 @@ st.markdown("---")
 
 # Sidebar
 st.sidebar.header("⚙️ Configurações")
-data_source = st.sidebar.selectbox("Fonte de Dados", ["data/raw/exemplo.json"])
+data_source = st.sidebar.selectbox("Fonte de Dados", ["data/raw/mock_dashboard_data.json", "data/raw/exemplo.json"])
 
 
 # Load data
@@ -108,14 +108,18 @@ def run_analysis(_chats):
             }
         )
 
+    # Quantitative Analysis
+    heatmap_data = analyze_heatmap(_chats)
+    tags_data = analyze_tags(_chats)
+
     report = generate_report(processed_data)
-    return processed_data, report
+    return processed_data, report, heatmap_data, tags_data
 
 
 # Load and process
 with st.spinner("Carregando dados..."):
     chats = load_data(data_source)
-    processed_data, report = run_analysis(chats)
+    processed_data, report, heatmap_data, tags_data = run_analysis(chats)
 
 # === METRICS ROW ===
 st.header("📈 Métricas Gerais")
@@ -135,6 +139,62 @@ with col3:
 with col4:
     conversion_rate = report["sales_funnel"].get("converted", 0) / len(chats) * 100
     st.metric(label="Taxa de Conversão", value=f"{conversion_rate:.1f}%", delta=None)
+
+st.markdown("---")
+
+# === QUANTITATIVE ANALYSIS ===
+st.header("📊 Análise Quantitativa")
+
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.subheader("Mapa de Calor de Mensagens")
+    # Prepare heatmap data
+    heatmap_rows = []
+    days_map = {"0": "Seg", "1": "Ter", "2": "Qua", "3": "Qui", "4": "Sex", "5": "Sáb", "6": "Dom"}
+    for day_key, hours in heatmap_data.items():
+        for hour, count in hours.items():
+            heatmap_rows.append({"Dia": days_map.get(day_key, day_key), "Hora": hour, "Mensagens": count})
+
+    if heatmap_rows:
+        df_heatmap = pd.DataFrame(heatmap_rows)
+        # Pivot for heatmap matrix
+        heatmap_matrix = df_heatmap.pivot(index="Dia", columns="Hora", values="Mensagens")
+        # Ensure correct order of days
+        ordered_days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
+        heatmap_matrix = heatmap_matrix.reindex(ordered_days)
+
+        fig = px.imshow(
+            heatmap_matrix,
+            labels=dict(x="Hora do Dia", y="Dia da Semana", color="Volume"),
+            x=list(range(24)),
+            y=ordered_days,
+            color_continuous_scale="Viridis",
+        )
+        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        st.plotly_chart(fig, width="stretch")
+    else:
+        st.info("Sem dados suficientes para o mapa de calor.")
+
+with col2:
+    st.subheader("Tags Mais Frequentes")
+    if tags_data:
+        df_tags = pd.DataFrame(list(tags_data.items()), columns=["Tag", "Frequência"])
+        df_tags = df_tags.sort_values("Frequência", ascending=True)  # Sort for horizontal bar
+
+        fig = px.bar(
+            df_tags,
+            x="Frequência",
+            y="Tag",
+            orientation="h",
+            title="Top Tags",
+            color="Frequência",
+            color_continuous_scale="Plasma",
+        )
+        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        st.plotly_chart(fig, width="stretch")
+    else:
+        st.info("Nenhuma tag encontrada.")
 
 st.markdown("---")
 
@@ -201,6 +261,68 @@ if report["product_cloud"]:
         )
         fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
         st.plotly_chart(fig, width="stretch")
+
+st.markdown("---")
+
+# === QUALITATIVE ANALYSIS (IA) ===
+st.header("🧠 Análise Qualitativa (IA)")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.subheader("Sentimento")
+    sentiments = [d["llm_results"]["cx"]["sentiment"] for d in processed_data]
+    sentiment_counts = pd.Series(sentiments).value_counts()
+
+    fig = px.pie(
+        values=sentiment_counts.values,
+        names=sentiment_counts.index,
+        title="Distribuição de Sentimento",
+        hole=0.4,
+        color_discrete_map={"positive": COLORS["success"], "neutral": COLORS["info"], "negative": COLORS["danger"]},
+    )
+    st.plotly_chart(fig, width="stretch")
+
+with col2:
+    st.subheader("NPS Preditivo (IA)")
+    nps_scores = [d["llm_results"]["cx"].get("nps_prediction", 0) for d in processed_data]
+    avg_nps = sum(nps_scores) / len(nps_scores) if nps_scores else 0
+
+    fig = go.Figure(
+        go.Indicator(
+            mode="gauge+number",
+            value=avg_nps,
+            domain={"x": [0, 1], "y": [0, 1]},
+            title={"text": "Média NPS"},
+            gauge={
+                "axis": {"range": [0, 10]},
+                "bar": {"color": COLORS["primary"]},
+                "steps": [
+                    {"range": [0, 6], "color": "#333"},
+                    {"range": [6, 8], "color": "#555"},
+                    {"range": [8, 10], "color": "#777"},
+                ],
+            },
+        )
+    )
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    st.plotly_chart(fig, width="stretch")
+
+with col3:
+    st.subheader("Estágio do Funil")
+    stages = [d["llm_results"]["sales"].get("funnel_stage", "unknown") for d in processed_data]
+    stage_counts = pd.Series(stages).value_counts()
+
+    fig = px.bar(
+        x=stage_counts.index,
+        y=stage_counts.values,
+        title="Distribuição do Funil",
+        labels={"x": "Estágio", "y": "Chats"},
+        color=stage_counts.values,
+        color_continuous_scale="Viridis",
+    )
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    st.plotly_chart(fig, width="stretch")
 
 st.markdown("---")
 

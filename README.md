@@ -89,6 +89,16 @@ O projeto usa as seguintes ferramentas:
 - **ruff** para linting
 - **mypy** para type checking
 
+## 📜 Histórico de Versões
+
+### v0.2.0
+- **Otimização de Performance:** Refatoração do `ops_analysis` para usar `pandas` e do `llm_analysis` para usar `asyncio`, resultando em um processamento de dados significativamente mais rápido.
+- **Segurança e LGPD:** Implementação da anonimização de dados PII (e-mails, telefones, CPFs) na camada de ingestão.
+- **Robustez Aprimorada:** Melhora na validação de dados com `Pydantic` e adição de tratamento de erros no pipeline principal.
+- **Legibilidade:** Adição de `docstrings` e comentários em português em todos os módulos.
+- **Testes:** Fortalecimento da suíte de testes para cobrir as novas funcionalidades e garantir a correção da lógica.
+
+
 ## 📄 Licença
 
 Este projeto está licenciado sob os termos da licença incluída no arquivo LICENSE.

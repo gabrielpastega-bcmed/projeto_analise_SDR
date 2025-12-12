@@ -23,12 +23,19 @@ Atualizar os seguintes arquivos quando necessário:
 - [ ] `docs/technical/` - Se adicionar nova integração ou arquitetura
 - [ ] `.env.example` - Se adicionar nova variável de ambiente
 
-### 4. Commit e Push
+### 4. Deploy da Documentação (GitHub Pages)
+Após atualizar arquivos em `docs/`, fazer deploy:
+```bash
+// turbo
+poetry run mkdocs gh-deploy --force
+```
+
+### 5. Commit e Push
 - [ ] Usar Conventional Commits: `feat:`, `fix:`, `docs:`, `refactor:`
 - [ ] Rodar `git commit` (SEM --no-verify) para validar pre-commit hooks
 - [ ] Push apenas do branch: `git push origin nome-do-branch`
 
-### 5. Pull Request (NO GITHUB!)
+### 6. Pull Request (NO GITHUB!)
 - [ ] Criar PR pelo link fornecido após o push
 - [ ] NÃO fazer merge local - deixar o GitHub gerenciar
 - [ ] Aguardar CI passar antes de fazer merge

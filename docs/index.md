@@ -8,25 +8,10 @@ Bem-vindo à documentação do **Sistema de Análise de Atendimento SDR**.
 
 Este sistema analisa automaticamente conversas de atendimento (chats) para extrair insights sobre:
 
-<div class="grid cards" markdown>
-
-- :trophy: **Performance de Agentes**
-
-  Ranking por velocidade e qualidade de atendimento
-
-- :fire: **Produtos Top of Mind**
-
-  O que os clientes mais perguntam
-
-- :chart_with_upwards_trend: **Funil de Vendas**
-
-  Taxa de conversão e motivos de perda
-
-- :smile: **Satisfação do Cliente**
-
-  Análise de sentimento e humanização
-
-</div>
+- 🏆 **Performance de Agentes** — Ranking por velocidade e qualidade de atendimento
+- 🔥 **Produtos Top of Mind** — O que os clientes mais perguntam
+- 📈 **Funil de Vendas** — Taxa de conversão e motivos de perda
+- 😊 **Satisfação do Cliente** — Análise de sentimento e humanização
 
 ---
 

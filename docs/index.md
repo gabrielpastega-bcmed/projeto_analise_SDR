@@ -30,6 +30,19 @@ Este sistema analisa automaticamente conversas de atendimento (chats) para extra
 
 ---
 
+## 📊 Dashboard Multi-Página
+
+O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
+
+| Página | Descrição |
+|--------|-----------|
+| 📊 **Visão Geral** | KPIs macro, distribuição de qualificação, volume por origem, heatmap |
+| 👥 **Agentes** | Ranking de TME, taxa de qualificação, scatter TME vs Volume |
+| 📈 **Análise Temporal** | Volume por hora, TME por hora, comparativo horário comercial |
+| 🎯 **Leads** | Performance por origem, funil de qualificação, distribuição de tags |
+
+---
+
 ## 🚀 Início Rápido
 
 === "Instalação"
@@ -43,14 +56,20 @@ Este sistema analisa automaticamente conversas de atendimento (chats) para extra
     poetry install
     ```
 
-=== "Executar Análise"
+=== "Executar Dashboard"
 
     ```bash
-    # Pipeline principal
-    poetry run python main.py
-
     # Dashboard interativo
     poetry run streamlit run dashboard.py
+    ```
+    
+    Acesse em: `http://localhost:8501`
+
+=== "Executar Análise CLI"
+
+    ```bash
+    # Pipeline de análise
+    poetry run python main.py
     ```
 
 === "Desenvolvimento"
@@ -68,25 +87,25 @@ Este sistema analisa automaticamente conversas de atendimento (chats) para extra
 ## 📚 Navegação
 
 | Seção | Descrição |
-|-------|-----------|
+|-------|-----------| 
 | [Guia do Usuário](user-guide/overview.md) | Para quem vai usar o sistema |
 | [Manual Técnico](technical/architecture.md) | Para desenvolvedores |
 | [Contribuindo](contributing.md) | Como colaborar |
 
 ---
 
-## 📊 Exemplo de Métricas
+## 📊 Métricas Principais
 
 !!! success "TME (Tempo Médio de Espera)"
-    Quanto tempo o cliente aguarda por uma resposta.
-
+    Tempo até a primeira resposta **humana** (não bot).
+    
     **Meta recomendada:** < 2 minutos
 
-!!! info "TMA (Tempo Médio de Atendimento)"
-    Duração total da conversa.
+!!! info "Taxa de Qualificação"
+    Porcentagem de leads classificados como qualificados.
 
-!!! warning "Taxa de Conversão"
-    Porcentagem de chats que resultam em venda.
+!!! warning "Conversão"
+    Leads qualificados que avançam para consultor.
 
 ---
 

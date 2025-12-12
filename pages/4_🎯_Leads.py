@@ -92,7 +92,7 @@ for chat in chats:
 # Criar DataFrame
 origin_metrics = []
 for origin, data in origin_data.items():
-    if data["total"] >= 10:  # Mínimo de 10 leads para análise
+    if data["total"] >= 1:  # Mínimo de 1 lead para análise
         avg_tme = (data["tme_sum"] / data["tme_count"] / 60) if data["tme_count"] > 0 else 0
         qual_rate = (data["qualificados"] / data["total"] * 100) if data["total"] > 0 else 0
 
@@ -139,6 +139,8 @@ if origin_metrics:
         fig_qual = apply_chart_theme(fig_qual)
         fig_qual.update_layout(showlegend=False, coloraxis_showscale=False)
         st.plotly_chart(fig_qual, width="stretch")
+else:
+    st.info("📊 Nenhum dado de origem disponível. Verifique se os chats possuem o campo `contact.customFields.origem_do_negocio`.")
 
 
 # ================================================================

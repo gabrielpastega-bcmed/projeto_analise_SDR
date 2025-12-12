@@ -179,6 +179,8 @@ def analyze_agent_performance(chats: List[Chat]) -> List[AgentPerformance]:
 def analyze_heatmap(chats: List[Chat]) -> Dict[str, Dict[int, int]]:
     """
     Gera um mapa de calor do volume de mensagens por dia da semana e hora.
+    NOTA: Requer dados com mensagens (não funciona em modo lightweight).
+    Para modo lightweight, use analyze_heatmap_lightweight.
     """
     _, messages_df = _prepare_dataframes(chats)
     if messages_df.empty:
@@ -189,6 +191,35 @@ def analyze_heatmap(chats: List[Chat]) -> Dict[str, Dict[int, int]]:
     messages_df["hour"] = messages_df["local_time"].dt.hour
 
     heatmap_data = messages_df.groupby(["weekday", "hour"]).size().unstack(fill_value=0)
+
+    # Garante que todos os dias e horas estejam presentes
+    heatmap_full = pd.DataFrame(0, index=map(str, range(7)), columns=range(24))
+    heatmap_full.update(heatmap_data)
+
+    return heatmap_full.to_dict(orient="index")
+
+
+def analyze_heatmap_lightweight(chats: List[Chat]) -> Dict[str, Dict[int, int]]:
+    """
+    Gera um mapa de calor baseado em firstMessageDate dos chats.
+    Funciona com dados carregados em modo lightweight.
+    """
+    # Cria lista de datas de primeiro contato
+    data = []
+    for chat in chats:
+        if chat.firstMessageDate:
+            data.append({"timestamp": chat.firstMessageDate})
+
+    if not data:
+        return {}
+
+    df = pd.DataFrame(data)
+    df["timestamp"] = pd.to_datetime(df["timestamp"], utc=True)
+    df["local_time"] = df["timestamp"].dt.tz_convert(TZ)
+    df["weekday"] = df["local_time"].dt.weekday.astype(str)
+    df["hour"] = df["local_time"].dt.hour
+
+    heatmap_data = df.groupby(["weekday", "hour"]).size().unstack(fill_value=0)
 
     # Garante que todos os dias e horas estejam presentes
     heatmap_full = pd.DataFrame(0, index=map(str, range(7)), columns=range(24))

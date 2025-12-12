@@ -138,6 +138,7 @@ with col_right:
 
 st.markdown("---")
 st.subheader("🔥 Mapa de Calor - Mensagens por Dia/Hora")
+st.caption("💼 Horário comercial: Segunda a Sexta, 08:00-18:00")
 
 try:
     from src.ops_analysis import analyze_heatmap
@@ -148,13 +149,31 @@ try:
         import numpy as np
         import pandas as pd
 
-        # Converter para matriz
+        # Dias da semana (0=Segunda, 6=Domingo)
         days = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
         hours = list(range(24))
 
+        # Converter o dict para matriz
+        # heatmap_data é Dict[str, Dict[int, int]] onde chave é weekday (0-6) e valor é dict de horas
         matrix = np.zeros((7, 24))
-        for item in heatmap_data:
-            matrix[item["weekday"]][item["hour"]] = item["count"]
+        for weekday_str, hour_counts in heatmap_data.items():
+            weekday = int(weekday_str)
+            for hour, count in hour_counts.items():
+                matrix[weekday][int(hour)] = count
+
+        # Criar anotações para horário comercial
+        annotations = []
+        # Destacar horário comercial (Seg-Sex, 08-18)
+        for day_idx in range(5):  # Seg-Sex
+            for hour in range(8, 18):  # 08h-18h
+                annotations.append(
+                    dict(
+                        x=f"{hour:02d}h",
+                        y=days[day_idx],
+                        text="",
+                        showarrow=False,
+                    )
+                )
 
         fig_heatmap = go.Figure(
             data=go.Heatmap(
@@ -162,6 +181,8 @@ try:
                 x=[f"{h:02d}h" for h in hours],
                 y=days,
                 colorscale="Viridis",
+                hoverongaps=False,
+                hovertemplate="Dia: %{y}<br>Hora: %{x}<br>Mensagens: %{z}<extra></extra>",
             )
         )
         fig_heatmap = apply_chart_theme(fig_heatmap)
@@ -169,7 +190,21 @@ try:
             xaxis_title="Hora do Dia",
             yaxis_title="Dia da Semana",
         )
+
+        # Adicionar retângulo para destacar horário comercial
+        fig_heatmap.add_shape(
+            type="rect",
+            x0=7.5,
+            x1=17.5,  # 08h a 18h (índices)
+            y0=-0.5,
+            y1=4.5,  # Seg a Sex
+            line=dict(color=COLORS["success"], width=2, dash="dash"),
+            fillcolor="rgba(0,0,0,0)",
+        )
+
         st.plotly_chart(fig_heatmap, width="stretch")
+    else:
+        st.info("📊 Dados insuficientes para gerar o heatmap.")
 except Exception as e:
     st.info(f"Heatmap não disponível: {e}")
 

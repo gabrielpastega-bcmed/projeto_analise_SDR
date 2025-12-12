@@ -541,12 +541,14 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
                         for msg in chat.messages or []:
                             # Determinar tipo de remetente usando sentBy.type
                             sender_type = msg.sentBy.type if msg.sentBy else None
+                            sender_name = msg.sentBy.name if msg.sentBy and msg.sentBy.name else ""
+
                             if sender_type == "bot":
                                 sender = "🤖 Bot"
                             elif sender_type == "agent":
-                                sender = "👤 Agente"
+                                sender = f"👤 {sender_name}" if sender_name else "👤 Agente"
                             else:
-                                sender = "📱 Cliente"
+                                sender = f"📱 {sender_name}" if sender_name else "📱 Cliente"
                             messages_text.append(f"[{sender}]: {msg.body}")
 
                         transcript_loaded = "\n\n".join(messages_text)

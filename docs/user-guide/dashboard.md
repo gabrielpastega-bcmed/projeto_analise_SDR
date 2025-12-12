@@ -68,7 +68,7 @@ O dashboard possui **5 páginas principais**, acessíveis pelo menu lateral esqu
 ---
 
 ### 🧠 Insights (Análise com IA)
-**O que mostra:** Análise qualitativa das conversas usando Google Gemini.
+**O que mostra:** Análise qualitativa das conversas usando Google Gemini. Resultados são salvos no BigQuery para consulta histórica.
 
 | Métrica | O que significa |
 |---------|-----------------|
@@ -77,8 +77,12 @@ O dashboard possui **5 páginas principais**, acessíveis pelo menu lateral esqu
 | **Taxa de Conversão** | % de chats que resultaram em venda |
 | **Sentimento** | Distribuição positivo/neutro/negativo |
 
-!!! tip "Como executar a análise"
-    Clique no botão **"🚀 Executar Análise com Gemini"** para processar os chats. A análise é executada sob demanda e os resultados ficam salvos.
+!!! info "Seletor de Semana"
+    Use o dropdown para selecionar semanas anteriores. Os resultados são carregados do BigQuery (sem custo de LLM).
+
+!!! tip "Executando nova análise"
+    Expanda a seção "🔧 Executar Nova Análise (Admin)" para processar chats da semana anterior. A análise é salva automaticamente no BigQuery.
+
 
 ---
 

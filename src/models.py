@@ -4,6 +4,7 @@ Módulo de modelos de dados Pydantic.
 Define a estrutura, validação e tipagem dos dados de entrada, garantindo
 consistência e robustez ao processar informações de chats.
 """
+
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional

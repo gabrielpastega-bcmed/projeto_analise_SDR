@@ -1,65 +1,67 @@
 # Visão Geral do Sistema
 
-## O que este sistema faz?
+## 🎯 O que este sistema faz?
 
-O **Sistema de Análise SDR** é uma ferramenta que lê automaticamente conversas de atendimento (chats) e extrai informações úteis para a equipe de vendas e gestão.
+O **Dashboard de Análise SDR** é uma ferramenta visual que mostra o desempenho da equipe de atendimento em tempo real. Com ele, você pode:
+
+- ✅ Acompanhar **quantos leads** estão chegando
+- ✅ Ver **quem está atendendo mais rápido**
+- ✅ Identificar **quais canais trazem melhores leads**
+- ✅ Entender os **horários de pico** de atendimento
 
 ---
 
-## Para quem é este sistema?
+## 👥 Para quem é este sistema?
 
 | Perfil | Como usar |
-|--------|-----------|
-| **Gestor de Vendas** | Acompanhar performance da equipe |
-| **Coordenador de Atendimento** | Identificar gargalos e treinamentos |
-| **Diretoria** | Relatórios executivos de conversão |
-| **Marketing** | Entender produtos mais procurados |
+|--------|-----------| 
+| **Gestor de Vendas** | Acompanhar performance diária da equipe |
+| **Coordenador de SDR** | Identificar gargalos e necessidades de treinamento |
+| **Diretoria** | Visão macro dos resultados de conversão |
+| **Marketing** | Avaliar qualidade dos leads por campanha/origem |
 
 ---
 
-## O que você pode descobrir?
+## 📊 As 4 Páginas do Dashboard
 
-### 🏆 Performance dos Atendentes
-- Quem responde mais rápido?
-- Quem converte mais?
-- Qual o nível de "humanização" de cada um?
+O dashboard está organizado em **4 páginas**, cada uma com um foco específico:
 
-### 🔥 Produtos "Top of Mind"
-- O que os clientes mais perguntam?
-- Quais tendências estão surgindo?
-- Que produtos estão em alta?
-
-### 📊 Resultados de Vendas
-- Quantos chats viram vendas?
-- Por que perdemos vendas?
-- Qual o tempo médio até fechar?
-
-### 😊 Qualidade do Atendimento
-- Os clientes estão satisfeitos?
-- O atendimento é personalizado?
-- Os problemas são resolvidos?
+| Página | Foco | Use quando precisar... |
+|--------|------|------------------------|
+| 📊 **Visão Geral** | Resumo da operação | Ter uma visão rápida do dia/semana |
+| 👥 **Agentes** | Performance individual | Dar feedback ou identificar top performers |
+| 📈 **Análise Temporal** | Padrões de horário | Planejar escalas e identificar picos |
+| 🎯 **Leads** | Qualidade das fontes | Avaliar campanhas e canais de aquisição |
 
 ---
 
-## Como funciona? (Explicação Simples)
+## 📈 Principais Indicadores (KPIs)
 
-```mermaid
-flowchart LR
-    A[📱 Chats do WhatsApp] --> B[🤖 Sistema analisa]
-    B --> C[📊 Dashboard com resultados]
-    C --> D[📈 Decisões baseadas em dados]
-```
+### TME - Tempo Médio de Espera
+> ⏱️ Quanto tempo o cliente espera até ser atendido por um **humano** (não conta o bot)
 
-1. **Chats são exportados** do sistema de atendimento
-2. **O sistema lê** cada conversa automaticamente
-3. **Métricas são calculadas** (tempo de resposta, conversão, etc.)
-4. **Um dashboard** mostra os resultados de forma visual
-5. **Você toma decisões** baseadas em dados reais
+**Por que importa?** Clientes que esperam muito desistem ou ficam frustrados.
 
 ---
 
-## Próximos Passos
+### Taxa de Qualificação  
+> 🎯 % de leads classificados como **potenciais compradores**
 
-- [Conhecer o Dashboard](dashboard.md)
-- [Entender as Métricas](metrics.md)
-- [Perguntas Frequentes](faq.md)
+**Por que importa?** Indica a qualidade do fluxo de leads e efetividade da triagem.
+
+---
+
+### Volume de Atendimentos
+> 📊 Total de conversas recebidas no período
+
+**Por que importa?** Ajuda a dimensionar a equipe e medir resultados de campanhas.
+
+---
+
+## 🚀 Próximos Passos
+
+Agora que você entendeu o que o sistema faz, veja:
+
+- [📖 Manual do Dashboard](dashboard.md) - Como usar cada página
+- [📊 Entender as Métricas](metrics.md) - Detalhes sobre cada KPI
+- [❓ Perguntas Frequentes](faq.md) - Dúvidas comuns

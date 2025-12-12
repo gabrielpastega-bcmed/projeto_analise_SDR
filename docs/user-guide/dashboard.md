@@ -1,95 +1,156 @@
-# O Dashboard
+# Dashboard - Manual do Usuário
 
-O dashboard é o painel visual onde você acompanha todos os resultados das análises.
-
----
-
-## Como Acessar
-
-```bash
-poetry run streamlit run dashboard.py
-```
-
-Após executar, abra o navegador em: `http://localhost:8501`
+Este guia explica como utilizar o **Dashboard de Análise SDR** para acompanhar KPIs e extrair insights sobre a performance do time de atendimento.
 
 ---
 
-## Seções do Dashboard
+## 🚀 Acessando o Dashboard
 
-### 📈 Métricas Gerais
-
-No topo do dashboard você encontra 4 cards com os números principais:
-
-| Card | O que mostra |
-|------|--------------|
-| **Total de Chats** | Quantas conversas foram analisadas |
-| **TME Médio** | Tempo médio de espera por resposta |
-| **TMA Médio** | Duração média das conversas |
-| **Taxa de Conversão** | % de chats que viraram vendas |
-
----
-
-### 🏆 Ranking de Atendentes
-
-Um gráfico de barras mostra os atendentes ordenados por velocidade de resposta.
+1. Abra seu navegador (Chrome, Edge, Firefox)
+2. Acesse o endereço fornecido pelo time de TI (normalmente `http://localhost:8501`)
+3. Aguarde o carregamento da página inicial
 
 !!! tip "Dica"
-    Quanto menor o TME, mais rápido o atendente responde.
-
-A tabela ao lado mostra:
-- Nome do atendente
-- Quantidade de chats
-- TME (tempo de espera)
-- Score de humanização (1-5)
+    O dashboard carrega automaticamente os dados mais recentes. Caso precise atualizar, use o botão **"🔄 Carregar/Atualizar Dados"** na barra lateral.
 
 ---
 
-### 🔥 Produtos Mais Mencionados
+## 📊 Navegando pelas Páginas
 
-Dois gráficos mostram os produtos mais falados nas conversas:
+O dashboard possui **4 páginas principais**, acessíveis pelo menu lateral esquerdo:
 
-- **Gráfico de Pizza**: Distribuição proporcional
-- **Gráfico de Barras**: Top 10 produtos
+### 📊 Visão Geral
+**O que mostra:** Resumo completo da operação - use para ter uma visão rápida do dia/semana.
 
-!!! info "Top of Mind"
-    São os produtos que estão "na cabeça" dos clientes.
-
----
-
-### 📊 Funil de Vendas
-
-Visualização do "caminho" das conversas:
-
-```
-┌─────────────────────────────┐
-│     ⏳ Em Progresso         │
-└─────────────────────────────┘
-          │
-          ▼
-    ┌───────────┐
-    │ ✅ Venda  │
-    └───────────┘
-          │
-    ┌───────────┐
-    │ ❌ Perda  │
-    └───────────┘
-```
-
-Ao lado, você vê os **motivos de perda** mais comuns.
+| Métrica | O que significa |
+|---------|-----------------|
+| **Total de Atendimentos** | Quantos chats foram recebidos no período |
+| **TME Médio** | Tempo médio que o cliente esperou pela primeira resposta humana |
+| **Taxa de Qualificação** | % de leads classificados como potenciais compradores |
+| **Distribuição de Tags** | Gráfico mostrando a classificação dos leads |
 
 ---
 
-## Filtros (Em Desenvolvimento)
+### 👥 Agentes
+**O que mostra:** Performance individual de cada atendente.
 
-!!! warning "Em breve"
-    Futuramente será possível filtrar por:
+| Métrica | O que significa | Como usar |
+|---------|-----------------|-----------|
+| **Ranking de TME** | Quem responde mais rápido | Identifique os melhores exemplos |
+| **Taxa de Qualificação** | Quem qualifica mais leads | Avalie efetividade do atendimento |
+| **TME vs Volume** | Gráfico de bolhas com performance | Encontre quem atende bem E rápido |
 
-    - Período (data inicial/final)
-    - Agente específico
-    - Canal (WhatsApp, Chat, etc.)
+!!! info "Filtro: Horário Comercial"
+    Marque a caixa "Apenas horário comercial" para ver métricas justas (excluindo mensagens fora do expediente).
 
 ---
 
-## Exportar Dados
+### 📈 Análise Temporal
+**O que mostra:** Padrões de atendimento ao longo do tempo.
 
-O relatório completo é salvo automaticamente em `analysis_report.json` após cada execução do pipeline principal.
+| Gráfico | O que mostra | Insights possíveis |
+|---------|--------------|-------------------|
+| **Volume por Hora** | Picos de demanda | Quando reforçar a equipe |
+| **TME por Hora** | Horários com mais demora | Quando faltam atendentes |
+| **Comercial vs Fora** | Comparativo de horários | Necessidade de plantão |
+
+---
+
+### 🎯 Leads
+**O que mostra:** Análise de origem e qualidade dos leads.
+
+| Seção | O que mostra |
+|-------|--------------|
+| **Performance por Origem** | Qual canal traz mais leads qualificados |
+| **Funil de Qualificação** | Quantos leads passam por cada etapa |
+| **Distribuição de Tags** | Categorização detalhada dos atendimentos |
+
+---
+
+## 🎛️ Usando os Filtros
+
+### Barra Lateral - Opções de Carregamento
+
+| Opção | O que faz |
+|-------|-----------|
+| **Dias para análise** | Quantos dias de histórico carregar (1-90) |
+| **Limite de chats** | Máximo de atendimentos a processar |
+| **Modo leve** | ✅ Mais rápido (recomendado) |
+
+### Filtros Globais
+
+| Filtro | Descrição |
+|--------|-----------|
+| **Agentes** | Ver apenas atendentes específicos |
+| **Origem do Lead** | Filtrar por canal de entrada |
+
+---
+
+## 📈 Principais KPIs Explicados
+
+### TME - Tempo Médio de Espera
+> ⏱️ Quanto tempo o cliente aguarda até a **primeira resposta de um humano** (não conta o bot).
+
+| Valor | Avaliação |
+|-------|-----------|
+| < 2 min | ✅ Excelente |
+| 2-5 min | ⚠️ Aceitável |
+| > 5 min | 🔴 Precisa melhorar |
+
+---
+
+### Taxa de Qualificação
+> 🎯 Porcentagem de leads classificados como **Qualificado** ou **Qualificado Plus**.
+
+**Como interpretar:**
+- Taxa alta = Leads de boa qualidade OU bom trabalho de triagem
+- Taxa baixa = Leads frios OU campanha mal direcionada
+
+---
+
+### Volume de Atendimentos
+> 📊 Total de conversas iniciadas no período.
+
+**Use para:**
+- Dimensionar a equipe
+- Medir resultado de campanhas
+- Identificar sazonalidades
+
+---
+
+## 💡 Dicas de Uso
+
+!!! success "Para reuniões rápidas"
+    Use a página **Visão Geral** - tem todos os KPIs resumidos.
+
+!!! info "Para feedback individual"
+    Use a página **Agentes** - compare performance entre membros.
+
+!!! warning "Para planejar escalas"
+    Use a página **Análise Temporal** - veja horários de pico.
+
+!!! tip "Para avaliar campanhas"
+    Use a página **Leads** - veja qual origem traz mais qualificados.
+
+---
+
+## ❓ Perguntas Frequentes
+
+??? question "Como atualizar os dados?"
+    Clique no botão **"🔄 Carregar/Atualizar Dados"** na barra lateral.
+
+??? question "Os dados estão demorando para carregar"
+    Reduza o número de dias e ative o **"Modo leve"**.
+
+??? question "Por que alguns gráficos estão vazios?"
+    Pode ser que os filtros estejam muito restritivos. Tente desmarcar os filtros ou aumentar o período.
+
+??? question "Posso exportar os dados?"
+    Sim! Clique com o botão direito nos gráficos Plotly para baixar como imagem.
+
+---
+
+## 🔗 Próximos Passos
+
+- [Entender as Métricas](metrics.md)
+- [Perguntas Frequentes](faq.md)

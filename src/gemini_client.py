@@ -36,7 +36,8 @@ class GeminiClient:
             raise ValueError("GEMINI_API_KEY não configurada. Configure no .env ou passe como parâmetro.")
 
         genai.configure(api_key=self.api_key)
-        self.model = genai.GenerativeModel("gemini-2.5-flash-preview-05-20")
+        # Modelo estável - atualizado em dezembro/2024
+        self.model = genai.GenerativeModel("gemini-2.0-flash")
 
         # Configuração para respostas JSON estruturadas
         self.generation_config = genai.GenerationConfig(

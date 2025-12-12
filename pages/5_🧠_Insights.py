@@ -322,7 +322,98 @@ with st.expander("🔧 Executar Nova Análise (Admin)"):
 
                 if save_to_bq:
                     analyzer.save_to_bigquery(results, last_monday, last_sunday)
+                    st.success(f"✅ Análise concluída! {len(results)} chats processados e salvos no BigQuery.")
+                    st.rerun()
+                else:
+                    # Salva apenas localmente e exibe resultados na tela
+                    analyzer.save_results(results)
+                    st.success(
+                        f"✅ Análise de teste concluída! {len(results)} chats processados (não salvo no BigQuery)."
+                    )
 
-                analyzer.save_results(results)
-                st.success(f"Análise concluída! {len(results)} chats processados.")
-                st.rerun()
+                    # Armazenar em session_state para exibir abaixo
+                    st.session_state["test_results"] = results
+
+# ================================================================
+# EXIBIÇÃO DE RESULTADOS DE TESTE
+# ================================================================
+
+if "test_results" in st.session_state and st.session_state["test_results"]:
+    test_results = st.session_state["test_results"]
+    test_aggregated = aggregate_bigquery_results(test_results)
+
+    st.markdown("---")
+    st.subheader("🧪 Resultados do Teste")
+
+    if test_aggregated:
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("Chats Analisados", f"{test_aggregated['total_analyzed']:,}")
+        col2.metric("NPS Médio", f"{test_aggregated['cx']['avg_nps_prediction']:.1f}/10")
+        col3.metric("Humanização", f"{test_aggregated['cx']['avg_humanization_score']:.1f}/5")
+        col4.metric("Taxa de Conversão", f"{test_aggregated['sales']['conversion_rate']:.1f}%")
+
+        # Gráficos de teste
+        import pandas as pd
+        import plotly.express as px
+
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            st.markdown("**😊 Sentimento**")
+            sentiment_data = test_aggregated["cx"]["sentiment_distribution"]
+            df_sentiment = pd.DataFrame(
+                [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
+            )
+            fig_sentiment = px.pie(
+                df_sentiment,
+                values="Quantidade",
+                names="Sentimento",
+                color="Sentimento",
+                color_discrete_map={
+                    "Positivo": COLORS["success"],
+                    "Neutro": COLORS["warning"],
+                    "Negativo": COLORS["danger"],
+                },
+                hole=0.4,
+            )
+            fig_sentiment = apply_chart_theme(fig_sentiment)
+            st.plotly_chart(fig_sentiment, use_container_width=True)
+
+        with col_right:
+            st.markdown("**📈 Resultados de Vendas**")
+            outcome_data = test_aggregated["sales"]["outcome_distribution"]
+            df_outcome = pd.DataFrame([{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()])
+            fig_outcome = px.bar(
+                df_outcome,
+                x="Resultado",
+                y="Quantidade",
+                color="Resultado",
+                color_discrete_map={
+                    "Convertido": COLORS["success"],
+                    "Perdido": COLORS["danger"],
+                    "Em andamento": COLORS["info"],
+                },
+            )
+            fig_outcome = apply_chart_theme(fig_outcome)
+            fig_outcome.update_layout(showlegend=False)
+            st.plotly_chart(fig_outcome, use_container_width=True)
+
+        # Detalhes individuais
+        with st.expander("📋 Ver Análises Individuais do Teste"):
+            for r in test_results:
+                with st.container():
+                    st.markdown(f"**Chat:** `{r.get('chat_id', 'N/A')}` | **Agente:** {r.get('agent_name', 'N/A')}")
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        cx = r.get("cx", {})
+                        st.write(f"**Sentimento:** {cx.get('sentiment', 'N/A')}")
+                        st.write(f"**NPS:** {cx.get('nps_prediction', 'N/A')}")
+                    with col2:
+                        sales = r.get("sales", {})
+                        st.write(f"**Outcome:** {sales.get('outcome', 'N/A')}")
+                        st.write(f"**Estágio:** {sales.get('funnel_stage', 'N/A')}")
+                    st.markdown("---")
+
+    if st.button("🗑️ Limpar Resultados de Teste"):
+        del st.session_state["test_results"]
+        st.rerun()

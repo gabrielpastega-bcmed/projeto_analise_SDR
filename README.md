@@ -118,19 +118,9 @@ GOOGLE_APPLICATION_CREDENTIALS=caminho/para/credentials.json
 ANALYSIS_DAYS=7
 ```
 
-## 📜 Histórico de Versões
+## 📜 Changelog
 
-### v0.3.0 (Atual)
-- **Dashboard Multi-Página:** 4 páginas especializadas (Visão Geral, Agentes, Temporal, Leads)
-- **Filtros Globais:** Agente, origem, período
-- **Modo Lightweight:** Carregamento otimizado excluindo mensagens
-- **Tema Adaptativo:** Suporte a tema claro e escuro
-- **LGPD:** Dados sanitizados, sem informações reais
-
-### v0.2.0
-- Otimização de Performance com `pandas` e `asyncio`
-- Segurança e LGPD: Anonimização de PII
-- Robustez Aprimorada com validação Pydantic
+Veja o histórico completo de versões na [documentação](https://gabrielpastega-bcmed.github.io/projeto_analise_SDR/changelog/).
 
 ## 📄 Licença
 

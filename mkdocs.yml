@@ -78,6 +78,7 @@ nav:
     - Versionamento: technical/versioning.md
     - API Reference: technical/api.md
     - CI/CD: technical/cicd.md
+  - Changelog: changelog.md
   - Contribuindo: contributing.md
 
 extra:

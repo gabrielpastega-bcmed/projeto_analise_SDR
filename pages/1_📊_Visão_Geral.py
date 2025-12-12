@@ -141,9 +141,9 @@ st.subheader("🔥 Mapa de Calor - Mensagens por Dia/Hora")
 st.caption("💼 Horário comercial: Segunda a Sexta, 08:00-18:00")
 
 try:
-    from src.ops_analysis import analyze_heatmap
+    from src.ops_analysis import analyze_heatmap_lightweight
 
-    heatmap_data = analyze_heatmap(chats)
+    heatmap_data = analyze_heatmap_lightweight(chats)
 
     if heatmap_data:
         import numpy as np

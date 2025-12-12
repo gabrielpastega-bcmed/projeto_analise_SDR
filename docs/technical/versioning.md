@@ -64,7 +64,7 @@ Mantenha um arquivo `CHANGELOG.md` na raiz do projeto:
 ```markdown
 # Changelog
 
-## [0.3.0] - 2024-12-12
+## [0.3.0] - 2025-12-12
 ### Adicionado
 - Dashboard multi-página (Visão Geral, Agentes, Temporal, Leads)
 - Filtros globais por agente e origem
@@ -74,7 +74,7 @@ Mantenha um arquivo `CHANGELOG.md` na raiz do projeto:
 - Classificação de tags para BigQuery e mock data
 - Gráficos vazios na página de Leads
 
-## [0.2.0] - 2024-XX-XX
+## [0.2.0] - 2025-XX-XX
 ### Adicionado
 - Anonimização de PII
 - Otimização com pandas e asyncio

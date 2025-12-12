@@ -40,6 +40,24 @@ poetry run mkdocs gh-deploy --force
 - [ ] NÃO fazer merge local - deixar o GitHub gerenciar
 - [ ] Aguardar CI passar antes de fazer merge
 
+### 7. Versionamento (após merge de features significativas)
+Seguir **Semantic Versioning (SemVer)**: `MAJOR.MINOR.PATCH`
+
+| Tipo de mudança | Quando incrementar | Exemplo |
+|-----------------|-------------------|---------|
+| **PATCH** (0.0.X) | Correções de bugs | Fix em gráfico |
+| **MINOR** (0.X.0) | Novas funcionalidades | Nova página, novo KPI |
+| **MAJOR** (X.0.0) | Mudanças incompatíveis | Reestruturação total |
+
+Para criar release:
+```bash
+# 1. Atualizar pyproject.toml
+# 2. Criar tag
+git tag -a v0.4.0 -m "Release v0.4.0 - Descrição"
+git push origin main --tags
+# 3. Criar release no GitHub
+```
+
 ## Variáveis de Ambiente do Projeto
 
 ```bash

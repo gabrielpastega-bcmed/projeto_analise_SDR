@@ -17,7 +17,7 @@ Este guia explica como utilizar o **Dashboard de Análise SDR** para acompanhar 
 
 ## 📊 Navegando pelas Páginas
 
-O dashboard possui **4 páginas principais**, acessíveis pelo menu lateral esquerdo:
+O dashboard possui **5 páginas principais**, acessíveis pelo menu lateral esquerdo:
 
 ### 📊 Visão Geral
 **O que mostra:** Resumo completo da operação - use para ter uma visão rápida do dia/semana.
@@ -64,6 +64,21 @@ O dashboard possui **4 páginas principais**, acessíveis pelo menu lateral esqu
 | **Performance por Origem** | Qual canal traz mais leads qualificados |
 | **Funil de Qualificação** | Quantos leads passam por cada etapa |
 | **Distribuição de Tags** | Categorização detalhada dos atendimentos |
+
+---
+
+### 🧠 Insights (Análise com IA)
+**O que mostra:** Análise qualitativa das conversas usando Google Gemini.
+
+| Métrica | O que significa |
+|---------|-----------------|
+| **NPS Médio** | Previsão de satisfação do cliente (0-10) |
+| **Humanização** | Quão personalizado foi o atendimento (1-5) |
+| **Taxa de Conversão** | % de chats que resultaram em venda |
+| **Sentimento** | Distribuição positivo/neutro/negativo |
+
+!!! tip "Como executar a análise"
+    Clique no botão **"🚀 Executar Análise com Gemini"** para processar os chats. A análise é executada sob demanda e os resultados ficam salvos.
 
 ---
 
@@ -131,6 +146,9 @@ O dashboard possui **4 páginas principais**, acessíveis pelo menu lateral esqu
 
 !!! tip "Para avaliar campanhas"
     Use a página **Leads** - veja qual origem traz mais qualificados.
+
+!!! success "Para insights qualitativos"
+    Use a página **Insights** - veja sentimento, humanização e tendências de produto.
 
 ---
 

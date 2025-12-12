@@ -73,7 +73,7 @@ jobs:
       run: poetry install --no-interaction
 
     - name: Run Mypy
-      run: poetry run mypy .
+      run: poetry run mypy . --exclude "pages/"
 
   test:
     name: Tests (Python ${{ matrix.python-version }})

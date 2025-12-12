@@ -442,6 +442,52 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
         col3.metric("Humanização", f"{test_aggregated['cx']['avg_humanization_score']:.1f}/5")
         col4.metric("Taxa de Conversão", f"{test_aggregated['sales']['conversion_rate']:.1f}%")
 
+        # Gráficos agregados
+        import pandas as pd
+        import plotly.express as px
+
+        col_left, col_right = st.columns(2)
+
+        with col_left:
+            st.markdown("**😊 Distribuição de Sentimento**")
+            sentiment_data = test_aggregated["cx"]["sentiment_distribution"]
+            df_sentiment = pd.DataFrame(
+                [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
+            )
+            fig_sentiment = px.pie(
+                df_sentiment,
+                values="Quantidade",
+                names="Sentimento",
+                color="Sentimento",
+                color_discrete_map={
+                    "Positivo": COLORS["success"],
+                    "Neutro": COLORS["warning"],
+                    "Negativo": COLORS["danger"],
+                },
+                hole=0.4,
+            )
+            fig_sentiment = apply_chart_theme(fig_sentiment)
+            st.plotly_chart(fig_sentiment, use_container_width=True)
+
+        with col_right:
+            st.markdown("**📈 Resultados de Vendas**")
+            outcome_data = test_aggregated["sales"]["outcome_distribution"]
+            df_outcome = pd.DataFrame([{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()])
+            fig_outcome = px.bar(
+                df_outcome,
+                x="Resultado",
+                y="Quantidade",
+                color="Resultado",
+                color_discrete_map={
+                    "Convertido": COLORS["success"],
+                    "Perdido": COLORS["danger"],
+                    "Em andamento": COLORS["info"],
+                },
+            )
+            fig_outcome = apply_chart_theme(fig_outcome)
+            fig_outcome.update_layout(showlegend=False)
+            st.plotly_chart(fig_outcome, use_container_width=True)
+
     st.markdown("---")
 
     # ================================================================
@@ -493,8 +539,15 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
                         chat = chat_match[0]
                         messages_text = []
                         for msg in chat.messages or []:
-                            sender = "🤖 Bot" if msg.is_bot else ("👤 Agente" if msg.is_agent else "📱 Cliente")
-                            messages_text.append(f"[{sender}]: {msg.content}")
+                            # Determinar tipo de remetente usando sentBy.type
+                            sender_type = msg.sentBy.type if msg.sentBy else None
+                            if sender_type == "bot":
+                                sender = "🤖 Bot"
+                            elif sender_type == "agent":
+                                sender = "👤 Agente"
+                            else:
+                                sender = "📱 Cliente"
+                            messages_text.append(f"[{sender}]: {msg.body}")
 
                         transcript_loaded = "\n\n".join(messages_text)
                         st.text_area(

@@ -21,21 +21,28 @@ BUSINESS_HOURS = {
     "weekdays": [0, 1, 2, 3, 4],  # Seg-Sex
 }
 
-# Tags de qualificação de leads (genérico)
+# Tags de qualificação de leads
+# Suporta tanto dados reais do BigQuery quanto dados mock genéricos
 TAG_GROUPS = {
-    "qualificado_plus": "Lead Qualificado Plus",
-    "qualificado": "Lead Qualificado",
-    "indefinido": "Lead Indefinido",
-    "fora_perfil": "Fora de Perfil",
-    "procedimento": "Procedimento",
-    "pos_vendas": "Pós-Vendas",
-    "neutro": "Neutro",
+    "qualificado_plus": ["Perfil Qualificado Plus", "Lead Qualificado Plus"],
+    "qualificado": ["Perfil Qualificado", "Lead Qualificado"],
+    "indefinido": ["Perfil Indefinido", "Lead Indefinido"],
+    "fora_perfil": ["Fora de perfil", "Fora de Perfil"],
+    "procedimento": ["Procedimento"],
+    "pos_vendas": ["Pós-Vendas"],
+    "neutro": ["Neutro"],
 }
 
-# Classificação para métricas de conversão
-TAGS_CONVERTIDO = ["Lead Qualificado Plus", "Lead Qualificado"]
-TAGS_NAO_CONVERTIDO = ["Lead Indefinido", "Fora de Perfil", "Neutro"]
-TAGS_OUTROS = ["Procedimento", "Pós-Vendas"]  # Não são leads de venda
+# Classificação para métricas de conversão (suporta ambos formatos)
+TAGS_CONVERTIDO = [
+    "Perfil Qualificado Plus", "Perfil Qualificado",  # BigQuery
+    "Lead Qualificado Plus", "Lead Qualificado",       # Mock
+]
+TAGS_NAO_CONVERTIDO = [
+    "Perfil Indefinido", "Fora de perfil", "Neutro",  # BigQuery
+    "Lead Indefinido", "Fora de Perfil",               # Mock
+]
+TAGS_OUTROS = ["Procedimento", "Pós-Vendas"]
 
 # Origens de leads
 ORIGENS_PRINCIPAIS = [
@@ -45,6 +52,11 @@ ORIGENS_PRINCIPAIS = [
     "SDR - Instagram",
     "SDR - Google Pago",
     "SDR - SMS",
+    "Anúncio Online",  # Mock
+    "Site",            # Mock
+    "Indicação",       # Mock
+    "Instagram",       # Mock
+    "Google",          # Mock
 ]
 
 

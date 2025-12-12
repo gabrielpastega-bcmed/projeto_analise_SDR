@@ -40,17 +40,26 @@ chats = st.session_state.chats
 # ================================================================
 
 st.sidebar.header("🔧 Filtros de Agente")
-business_hours_only = st.sidebar.checkbox("Apenas horário comercial", value=True)
+business_hours_only = st.sidebar.checkbox(
+    "Apenas horário comercial",
+    value=False,
+    help="Filtrar apenas contatos feitos em horário comercial (Seg-Sex 08h-18h)",
+)
 
 # Filtrar chats
 filtered_chats = chats
 if business_hours_only:
     filtered_chats = [
-        c for c in chats if c.firstMessageDate and classify_contact_context(c.firstMessageDate) == "horario_comercial"
+        c
+        for c in chats
+        if c.firstMessageDate and classify_contact_context(c.firstMessageDate) == "horario_comercial"
     ]
+    if len(filtered_chats) == 0:
+        st.warning("Nenhum chat com horário comercial encontrado. Desmarque o filtro para ver todos os dados.")
+        filtered_chats = chats  # Fallback to all chats
 
 if len(filtered_chats) == 0:
-    st.warning("Nenhum chat encontrado com os filtros aplicados.")
+    st.warning("Nenhum chat encontrado.")
     st.stop()
 
 

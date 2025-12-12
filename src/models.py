@@ -83,8 +83,17 @@ class Chat(BaseModel):
     messages: List[Message] = Field(description="Lista de mensagens da conversa.")
     status: str = Field(description="Status atual (ex: 'open', 'closed').")
     closed: Optional[ClosedInfo] = Field(None, description="Detalhes de fechamento.")
-    waitingTime: Optional[int] = Field(None, description="Tempo de espera inicial em segundos.")
+    waitingTime: Optional[int] = Field(None, description="Tempo até primeira resposta humana (segundos).")
     tags: Optional[List[Dict[str, Any]]] = Field(None, description="Tags associadas à conversa.")
+
+    # Novos campos do BigQuery
+    pastAgents: Optional[List[Agent]] = Field(None, description="Agentes anteriores que atenderam.")
+    firstMessageDate: Optional[datetime] = Field(None, description="Data da primeira mensagem.")
+    lastMessageDate: Optional[datetime] = Field(None, description="Data da última mensagem.")
+    messagesCount: Optional[int] = Field(None, description="Contagem de mensagens.")
+    withBot: Optional[str] = Field(None, description="Se passou pelo bot (true/false).")
+    unreadMessages: Optional[str] = Field(None, description="Mensagens não lidas (true/false).")
+    octavia_analysis: Optional[str] = Field(None, description="Análise da Octavia IA.")
 
     # Métricas computadas que podem ser preenchidas durante a análise
     duration_seconds: Optional[float] = Field(None, description="Duração total da conversa em segundos.")

@@ -5,18 +5,22 @@
         "channel": "whatsapp",
         "contact": {
             "id": "contact_001",
-            "name": "Ana Silva",
-            "email": "ana.silva@email.com"
+            "name": "Maria Santos",
+            "email": "maria.santos@exemplo.com",
+            "customFields": {
+                "origem_do_negocio": "Anúncio Online",
+                "tipo_de_tecnologia": "Software ERP"
+            }
         },
         "agent": {
             "id": "agent_001",
-            "name": "Carlos Vendas",
-            "email": "carlos@bcmed.com.br"
+            "name": "Lucas Comercial",
+            "email": "lucas@techsales.exemplo.com"
         },
         "messages": [
             {
                 "id": "msg_001_1",
-                "body": "Olá, gostaria de saber o preço do Ultrassom Microfocado.",
+                "body": "Olá, gostaria de saber o preço do Software de Gestão.",
                 "time": "2023-10-16T09:00:00Z",
                 "type": "public",
                 "chatId": "chat_001",
@@ -27,7 +31,7 @@
             },
             {
                 "id": "msg_001_2",
-                "body": "Olá Ana! O valor é R$ 50.000,00. Temos condições especiais para pagamento à vista.",
+                "body": "Olá Maria! O valor é R$ 2.500,00 mensais. Temos condições especiais para contrato anual.",
                 "time": "2023-10-16T09:05:00Z",
                 "type": "public",
                 "chatId": "chat_001",
@@ -38,7 +42,7 @@
             },
             {
                 "id": "msg_001_3",
-                "body": "Entendi. Vocês entregam em SP?",
+                "body": "Entendi. Vocês oferecem treinamento?",
                 "time": "2023-10-16T09:10:00Z",
                 "type": "public",
                 "chatId": "chat_001",
@@ -49,7 +53,7 @@
             },
             {
                 "id": "msg_001_4",
-                "body": "Sim, entregamos em todo o Brasil com frete grátis.",
+                "body": "Sim, oferecemos treinamento completo incluso na implantação.",
                 "time": "2023-10-16T09:12:00Z",
                 "type": "public",
                 "chatId": "chat_001",
@@ -64,17 +68,22 @@
             "closedAt": "2023-10-16T10:00:00Z",
             "closedBy": {
                 "id": "agent_001",
-                "name": "Carlos Vendas"
+                "name": "Lucas Comercial"
             }
         },
+        "waitingTime": 300,
+        "firstMessageDate": "2023-10-16T09:00:00Z",
+        "lastMessageDate": "2023-10-16T09:12:00Z",
+        "messagesCount": 4,
+        "withBot": "false",
         "tags": [
             {
                 "id": "tag_01",
-                "name": "Interesse: Alto"
+                "name": "Lead Qualificado"
             },
             {
                 "id": "tag_02",
-                "name": "Produto: Ultrassom"
+                "name": "Software"
             }
         ]
     },
@@ -84,18 +93,22 @@
         "channel": "whatsapp",
         "contact": {
             "id": "contact_002",
-            "name": "Marcos Oliveira",
-            "email": "marcos.o@email.com"
+            "name": "João Pereira",
+            "email": "joao.p@exemplo.com",
+            "customFields": {
+                "origem_do_negocio": "Site",
+                "tipo_de_tecnologia": "CRM"
+            }
         },
         "agent": {
             "id": "agent_002",
-            "name": "Julia Suporte",
-            "email": "julia@bcmed.com.br"
+            "name": "Amanda Suporte",
+            "email": "amanda@techsales.exemplo.com"
         },
         "messages": [
             {
                 "id": "msg_002_1",
-                "body": "Meu aparelho parou de funcionar.",
+                "body": "Meu sistema está apresentando erros.",
                 "time": "2023-10-16T14:00:00Z",
                 "type": "public",
                 "chatId": "chat_002",
@@ -106,7 +119,7 @@
             },
             {
                 "id": "msg_002_2",
-                "body": "Oi Marcos, sinto muito. Qual o modelo?",
+                "body": "Oi João, sinto muito pelo inconveniente. Qual a versão do sistema?",
                 "time": "2023-10-16T14:30:00Z",
                 "type": "public",
                 "chatId": "chat_002",
@@ -117,14 +130,19 @@
             }
         ],
         "status": "open",
+        "waitingTime": 1800,
+        "firstMessageDate": "2023-10-16T14:00:00Z",
+        "lastMessageDate": "2023-10-16T14:30:00Z",
+        "messagesCount": 2,
+        "withBot": "false",
         "tags": [
             {
                 "id": "tag_03",
-                "name": "Suporte"
+                "name": "Suporte Técnico"
             },
             {
                 "id": "tag_04",
-                "name": "Reclamação"
+                "name": "Lead Indefinido"
             }
         ]
     },
@@ -134,18 +152,22 @@
         "channel": "whatsapp",
         "contact": {
             "id": "contact_003",
-            "name": "Clinica Estetica",
-            "email": "contato@clinica.com"
+            "name": "Empresa XYZ Ltda",
+            "email": "contato@empresaxyz.exemplo.com",
+            "customFields": {
+                "origem_do_negocio": "Indicação",
+                "tipo_de_tecnologia": "Analytics"
+            }
         },
         "agent": {
             "id": "agent_001",
-            "name": "Carlos Vendas",
-            "email": "carlos@bcmed.com.br"
+            "name": "Lucas Comercial",
+            "email": "lucas@techsales.exemplo.com"
         },
         "messages": [
             {
                 "id": "msg_003_1",
-                "body": "Gostaria de um orçamento para 3 macas.",
+                "body": "Gostaria de um orçamento para 10 licenças.",
                 "time": "2023-10-17T10:00:00Z",
                 "type": "public",
                 "chatId": "chat_003",
@@ -156,7 +178,7 @@
             },
             {
                 "id": "msg_003_2",
-                "body": "Claro! Temos modelos hidráulicos e elétricos. Qual prefere?",
+                "body": "Claro! Temos planos mensais e anuais. Qual prefere?",
                 "time": "2023-10-17T10:02:00Z",
                 "type": "public",
                 "chatId": "chat_003",
@@ -167,7 +189,7 @@
             },
             {
                 "id": "msg_003_3",
-                "body": "Elétricas, por favor.",
+                "body": "Anual, por favor.",
                 "time": "2023-10-17T10:05:00Z",
                 "type": "public",
                 "chatId": "chat_003",
@@ -178,14 +200,19 @@
             }
         ],
         "status": "open",
+        "waitingTime": 120,
+        "firstMessageDate": "2023-10-17T10:00:00Z",
+        "lastMessageDate": "2023-10-17T10:05:00Z",
+        "messagesCount": 3,
+        "withBot": "true",
         "tags": [
             {
                 "id": "tag_05",
-                "name": "Venda"
+                "name": "Lead Qualificado Plus"
             },
             {
                 "id": "tag_06",
-                "name": "Móveis"
+                "name": "Analytics"
             }
         ]
     },
@@ -195,13 +222,17 @@
         "channel": "whatsapp",
         "contact": {
             "id": "contact_004",
-            "name": "Roberto Lima",
-            "email": "roberto@email.com"
+            "name": "Carlos Mendes",
+            "email": "carlos.m@exemplo.com",
+            "customFields": {
+                "origem_do_negocio": "Instagram",
+                "tipo_de_tecnologia": "Automação"
+            }
         },
         "agent": {
             "id": "agent_003",
-            "name": "Pedro SDR",
-            "email": "pedro@bcmed.com.br"
+            "name": "Rafael SDR",
+            "email": "rafael@techsales.exemplo.com"
         },
         "messages": [
             {
@@ -217,7 +248,7 @@
             },
             {
                 "id": "msg_004_2",
-                "body": "Olá Roberto! Sobre qual equipamento?",
+                "body": "Olá Carlos! Sobre qual solução você tem interesse?",
                 "time": "2023-10-17T15:01:00Z",
                 "type": "public",
                 "chatId": "chat_004",
@@ -228,7 +259,7 @@
             },
             {
                 "id": "msg_004_3",
-                "body": "O de criolipólise.",
+                "body": "O módulo de automação de processos.",
                 "time": "2023-10-17T15:02:00Z",
                 "type": "public",
                 "chatId": "chat_004",
@@ -243,9 +274,14 @@
             "closedAt": "2023-10-17T16:00:00Z",
             "closedBy": {
                 "id": "agent_003",
-                "name": "Pedro SDR"
+                "name": "Rafael SDR"
             }
         },
+        "waitingTime": 60,
+        "firstMessageDate": "2023-10-17T15:00:00Z",
+        "lastMessageDate": "2023-10-17T15:02:00Z",
+        "messagesCount": 3,
+        "withBot": "true",
         "tags": [
             {
                 "id": "tag_07",
@@ -253,7 +289,7 @@
             },
             {
                 "id": "tag_08",
-                "name": "Criolipólise"
+                "name": "Automação"
             }
         ]
     },
@@ -263,18 +299,22 @@
         "channel": "whatsapp",
         "contact": {
             "id": "contact_005",
-            "name": "Fernanda Costa",
-            "email": "fernanda@email.com"
+            "name": "Patricia Lima",
+            "email": "patricia.lima@exemplo.com",
+            "customFields": {
+                "origem_do_negocio": "Google",
+                "tipo_de_tecnologia": "Integração"
+            }
         },
         "agent": {
             "id": "agent_001",
-            "name": "Carlos Vendas",
-            "email": "carlos@bcmed.com.br"
+            "name": "Lucas Comercial",
+            "email": "lucas@techsales.exemplo.com"
         },
         "messages": [
             {
                 "id": "msg_005_1",
-                "body": "Qual a garantia do laser?",
+                "body": "Qual a garantia do serviço?",
                 "time": "2023-10-18T11:00:00Z",
                 "type": "public",
                 "chatId": "chat_005",
@@ -285,7 +325,7 @@
             },
             {
                 "id": "msg_005_2",
-                "body": "São 2 anos de garantia total.",
+                "body": "Oferecemos SLA de 99.9% de uptime garantido.",
                 "time": "2023-10-18T11:05:00Z",
                 "type": "public",
                 "chatId": "chat_005",
@@ -300,9 +340,14 @@
             "closedAt": "2023-10-18T12:00:00Z",
             "closedBy": {
                 "id": "agent_001",
-                "name": "Carlos Vendas"
+                "name": "Lucas Comercial"
             }
         },
+        "waitingTime": 300,
+        "firstMessageDate": "2023-10-18T11:00:00Z",
+        "lastMessageDate": "2023-10-18T11:05:00Z",
+        "messagesCount": 2,
+        "withBot": "false",
         "tags": [
             {
                 "id": "tag_09",
@@ -310,7 +355,7 @@
             },
             {
                 "id": "tag_10",
-                "name": "Laser"
+                "name": "Lead Qualificado"
             }
         ]
     }

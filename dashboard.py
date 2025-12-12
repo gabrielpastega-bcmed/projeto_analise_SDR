@@ -1,389 +1,208 @@
 """
-Streamlit Dashboard for SDR Chat Analysis
+Dashboard Principal - Entry Point
+Carrega dados e configura filtros globais para as páginas.
 """
 
-import asyncio
-
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-import plotly.io as pio
+import nest_asyncio
 import streamlit as st
 
-from src.ingestion import load_chats_from_json
-from src.llm_analysis import LLMAnalyzer
-from src.ops_analysis import analyze_agent_performance, analyze_heatmap, analyze_tags
-from src.reporting import generate_report
+# Apply nest_asyncio to allow nested event loops in Streamlit
+nest_asyncio.apply()
 
-# Set Plotly theme for dark mode
-pio.templates.default = "plotly_dark"
+from src.dashboard_utils import (
+    apply_custom_css,
+    get_colors,
+    get_lead_origin,
+    init_session_state,
+    setup_plotly_theme,
+)
+from src.ingestion import get_data_source, load_chats_from_bigquery, load_chats_from_json
 
 # Page config
-st.set_page_config(page_title="Análise SDR Dashboard", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
-
-# Custom CSS for dark theme
-st.markdown(
-    """
-<style>
-    /* Dark mode compatible metric cards */
-    .stMetric {
-        background: linear-gradient(135deg, #1e3a5f 0%, #2d1b4e 100%);
-        padding: 15px;
-        border-radius: 10px;
-        border: 1px solid #3d5a80;
-    }
-
-    /* Headers styling */
-    h1, h2, h3 {
-        color: #e0e0e0 !important;
-    }
-
-    /* Sidebar styling */
-    .css-1d391kg {
-        background-color: #1a1a2e;
-    }
-
-    /* Info box dark mode */
-    .stAlert {
-        background-color: #1e3a5f;
-        border: 1px solid #3d5a80;
-    }
-
-    /* Divider color */
-    hr {
-        border-color: #3d5a80;
-    }
-</style>
-""",
-    unsafe_allow_html=True,
+st.set_page_config(
+    page_title="Dashboard SDR - Demo",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
+# Setup
+setup_plotly_theme()
+apply_custom_css()
+init_session_state()
+COLORS = get_colors()
 
-# Dark mode color palette for charts
-COLORS = {
-    "primary": "#6366f1",  # Indigo
-    "secondary": "#8b5cf6",  # Violet
-    "success": "#22c55e",  # Green
-    "warning": "#f59e0b",  # Amber
-    "danger": "#ef4444",  # Red
-    "info": "#06b6d4",  # Cyan
-    "gradient": ["#6366f1", "#8b5cf6", "#a855f7", "#d946ef"],  # Purple gradient
-}
+# ================================================================
+# TÍTULO E DESCRIÇÃO
+# ================================================================
 
-# Title
 st.title("📊 Dashboard de Análise SDR")
+st.markdown("""
+**Bem-vindo ao Dashboard de Análise SDR.**
+
+Use o menu lateral para navegar entre as diferentes análises:
+- **📊 Visão Geral** - KPIs macro, métricas gerais
+- **👥 Agentes** - Performance comparativa de agentes
+- **📈 Análise Temporal** - TME por horário, primeiro contato
+- **🎯 Leads** - Origem, qualificação, funil
+""")
+
 st.markdown("---")
 
-# Sidebar
+
+# ================================================================
+# SIDEBAR - CONFIGURAÇÕES E FILTROS
+# ================================================================
+
 st.sidebar.header("⚙️ Configurações")
-data_source = st.sidebar.selectbox("Fonte de Dados", ["data/raw/mock_dashboard_data.json", "data/raw/exemplo.json"])
 
+# Fonte de dados
+data_source = get_data_source()
+st.sidebar.info(f"📁 Fonte de dados: **{data_source.upper()}**")
 
-# Load data
-@st.cache_data
-def load_data(file_path: str):
-    """Load and process the chat data."""
-    chats = load_chats_from_json(file_path)
-    return chats
+# Opções de carregamento
+st.sidebar.subheader("📊 Opções de Carregamento")
+days = st.sidebar.slider("Dias para análise", min_value=1, max_value=90, value=7)
+limit = st.sidebar.slider("Limite de chats", min_value=100, max_value=10000, value=2000, step=100)
+lightweight = st.sidebar.checkbox(
+    "Modo leve (mais rápido)", value=True, help="Exclui mensagens individuais para carregamento mais rápido"
+)
 
+# Botão para carregar dados
+if st.sidebar.button("🔄 Carregar/Atualizar Dados", type="primary"):
+    with st.spinner(f"Carregando dados ({days} dias, limite {limit})..."):
+        try:
+            if data_source == "bigquery":
+                chats = load_chats_from_bigquery(days=days, limit=limit, lightweight=lightweight)
+            else:
+                chats = load_chats_from_json("data/raw/mock_dashboard_data.json")
 
-@st.cache_data
-def run_analysis(_chats):
-    """Run the full analysis pipeline."""
-    # Análise Operacional (em lote)
-    agent_performance = analyze_agent_performance(_chats)
-    heatmap_data = analyze_heatmap(_chats)
-    tags_data = analyze_tags(_chats)
+            st.session_state.chats = chats
+            st.session_state.data_loaded = True
+            st.success(f"✅ Carregados {len(chats)} chats com sucesso!")
+        except Exception as e:
+            st.error(f"❌ Erro ao carregar dados: {e}")
+            st.session_state.data_loaded = False
 
-    # Análise com LLM (em paralelo)
-    llm_analyzer = LLMAnalyzer()
-    tasks = [llm_analyzer.analyze_chat(chat) for chat in _chats]
-    llm_results_list = asyncio.run(asyncio.gather(*tasks))
+# Se não há dados carregados, tenta carregar automaticamente (modo leve)
+if not st.session_state.data_loaded:
+    with st.spinner("Carregando dados iniciais (modo leve)..."):
+        try:
+            if data_source == "bigquery":
+                # Carregamento inicial leve: 7 dias, limite 1000, sem mensagens
+                chats = load_chats_from_bigquery(days=7, limit=1000, lightweight=True)
+            else:
+                chats = load_chats_from_json("data/raw/mock_dashboard_data.json")
 
-    # Combina os resultados
-    processed_data = []
-    for i, chat in enumerate(_chats):
-        processed_data.append(
-            {
-                "chat_id": chat.id,
-                "agent_name": chat.agent.name if chat.agent else "Unknown",
-                "contact_name": chat.contact.name,
-                "ops_metrics": {},  # Será preenchido pelo relatório
-                "llm_results": llm_results_list[i],
-            }
-        )
+            st.session_state.chats = chats
+            st.session_state.data_loaded = True
+        except Exception as e:
+            st.warning(f"⚠️ Não foi possível carregar dados automaticamente: {e}")
 
-    report = generate_report(processed_data)
+# ================================================================
+# FILTROS GLOBAIS
+# ================================================================
 
-    # Adiciona as métricas operacionais agregadas de volta aos dados processados
-    agent_perf_map = {p["agent"]: p for p in agent_performance}
-    for item in processed_data:
-        agent_name = item["agent_name"]
-        if agent_name in agent_perf_map:
-            item["ops_metrics"] = {
-                "tme_seconds": agent_perf_map[agent_name].get("avg_tme_seconds", 0),
-                "tma_seconds": agent_perf_map[agent_name].get("avg_tma_seconds", 0),
-            }
+if st.session_state.data_loaded and st.session_state.chats:
+    chats = st.session_state.chats
 
-    return processed_data, report, heatmap_data, tags_data
+    st.sidebar.markdown("---")
+    st.sidebar.header("🔍 Filtros Globais")
 
+    # Filtro por agente
+    agents = list(set(c.agent.name for c in chats if c.agent and c.agent.name))
+    agents.sort()
 
-# Load and process
-with st.spinner("Carregando dados..."):
-    chats = load_data(data_source)
-    processed_data, report, heatmap_data, tags_data = run_analysis(chats)
-
-# === METRICS ROW ===
-st.header("📈 Métricas Gerais")
-col1, col2, col3, col4 = st.columns(4)
-
-with col1:
-    st.metric(label="Total de Chats", value=len(chats), delta=None)
-
-with col2:
-    avg_tme = sum(d["ops_metrics"]["tme_seconds"] for d in processed_data) / len(processed_data)
-    st.metric(label="TME Médio", value=f"{avg_tme:.1f}s", delta=None, help="Tempo Médio de Espera")
-
-with col3:
-    avg_tma = sum(d["ops_metrics"]["tma_seconds"] for d in processed_data) / len(processed_data)
-    st.metric(label="TMA Médio", value=f"{avg_tma / 60:.1f} min", delta=None, help="Tempo Médio de Atendimento")
-
-with col4:
-    conversion_rate = report["sales_funnel"].get("converted", 0) / len(chats) * 100
-    st.metric(label="Taxa de Conversão", value=f"{conversion_rate:.1f}%", delta=None)
-
-st.markdown("---")
-
-# === QUANTITATIVE ANALYSIS ===
-st.header("📊 Análise Quantitativa")
-
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.subheader("Mapa de Calor de Mensagens")
-    # Prepare heatmap data
-    heatmap_rows = []
-    days_map = {"0": "Seg", "1": "Ter", "2": "Qua", "3": "Qui", "4": "Sex", "5": "Sáb", "6": "Dom"}
-    for day_key, hours in heatmap_data.items():
-        for hour, count in hours.items():
-            heatmap_rows.append({"Dia": days_map.get(day_key, day_key), "Hora": hour, "Mensagens": count})
-
-    if heatmap_rows:
-        df_heatmap = pd.DataFrame(heatmap_rows)
-        # Pivot for heatmap matrix
-        heatmap_matrix = df_heatmap.pivot(index="Dia", columns="Hora", values="Mensagens")
-        # Ensure correct order of days
-        ordered_days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
-        heatmap_matrix = heatmap_matrix.reindex(ordered_days)
-
-        fig = px.imshow(
-            heatmap_matrix,
-            labels=dict(x="Hora do Dia", y="Dia da Semana", color="Volume"),
-            x=list(range(24)),
-            y=ordered_days,
-            color_continuous_scale="Viridis",
-        )
-        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, width="stretch")
-    else:
-        st.info("Sem dados suficientes para o mapa de calor.")
-
-with col2:
-    st.subheader("Tags Mais Frequentes")
-    if tags_data:
-        df_tags = pd.DataFrame(list(tags_data.items()), columns=["Tag", "Frequência"])
-        df_tags = df_tags.sort_values("Frequência", ascending=True)  # Sort for horizontal bar
-
-        fig = px.bar(
-            df_tags,
-            x="Frequência",
-            y="Tag",
-            orientation="h",
-            title="Top Tags",
-            color="Frequência",
-            color_continuous_scale="Plasma",
-        )
-        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, width="stretch")
-    else:
-        st.info("Nenhuma tag encontrada.")
-
-st.markdown("---")
-
-# === AGENT RANKING ===
-st.header("🏆 Ranking de Agentes")
-
-if report["agent_ranking"]:
-    df_agents = pd.DataFrame(report["agent_ranking"])
-    df_agents["avg_tme_formatted"] = df_agents["avg_tme"].apply(lambda x: f"{x:.1f}s")
-    df_agents["avg_tma_formatted"] = df_agents["avg_tma"].apply(lambda x: f"{x / 60:.1f} min")
-
-    col1, col2 = st.columns([2, 1])
-
-    with col1:
-        fig = px.bar(
-            df_agents.head(10),
-            x="agent",
-            y="avg_tme",
-            title="Top 10 Agentes por Tempo de Resposta (TME)",
-            labels={"agent": "Agente", "avg_tme": "TME (segundos)"},
-            color="avg_humanization",
-            color_continuous_scale="Viridis",
-        )
-        fig.update_layout(xaxis_tickangle=-45, paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, width="stretch")
-
-    with col2:
-        st.dataframe(
-            df_agents[["agent", "chats", "avg_tme_formatted", "avg_humanization"]].rename(
-                columns={
-                    "agent": "Agente",
-                    "chats": "Chats",
-                    "avg_tme_formatted": "TME",
-                    "avg_humanization": "Humanização",
-                }
-            ),
-            hide_index=True,
-            width="stretch",
-        )
-
-st.markdown("---")
-
-# === PRODUCT CLOUD ===
-st.header("🔥 Produtos Mais Mencionados (Top of Mind)")
-
-if report["product_cloud"]:
-    col1, col2 = st.columns([1, 1])
-
-    with col1:
-        products = [p[0] for p in report["product_cloud"]]
-        counts = [p[1] for p in report["product_cloud"]]
-
-        fig = px.pie(values=counts, names=products, title="Distribuição de Produtos", hole=0.4)
-        st.plotly_chart(fig, width="stretch")
-
-    with col2:
-        fig = px.bar(
-            x=products[:10],
-            y=counts[:10],
-            title="Top 10 Produtos",
-            labels={"x": "Produto", "y": "Menções"},
-            color=counts[:10],
-            color_continuous_scale="Plasma",
-        )
-        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, width="stretch")
-
-st.markdown("---")
-
-# === QUALITATIVE ANALYSIS (IA) ===
-st.header("🧠 Análise Qualitativa (IA)")
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    st.subheader("Sentimento")
-    sentiments = [d["llm_results"]["cx"]["sentiment"] for d in processed_data]
-    sentiment_counts = pd.Series(sentiments).value_counts()
-
-    fig = px.pie(
-        values=sentiment_counts.values,
-        names=sentiment_counts.index,
-        title="Distribuição de Sentimento",
-        hole=0.4,
-        color_discrete_map={"positive": COLORS["success"], "neutral": COLORS["info"], "negative": COLORS["danger"]},
+    selected_agents = st.sidebar.multiselect(
+        "Agentes",
+        options=agents,
+        default=[],
+        placeholder="Todos os agentes",
     )
-    st.plotly_chart(fig, width="stretch")
 
-with col2:
-    st.subheader("NPS Preditivo (IA)")
-    nps_scores = [d["llm_results"]["cx"].get("nps_prediction", 0) for d in processed_data]
-    avg_nps = sum(nps_scores) / len(nps_scores) if nps_scores else 0
+    # Filtro por origem
+    origins = list(set(get_lead_origin(c) for c in chats if get_lead_origin(c)))
+    origins.sort()
 
-    fig = go.Figure(
-        go.Indicator(
-            mode="gauge+number",
-            value=avg_nps,
-            domain={"x": [0, 1], "y": [0, 1]},
-            title={"text": "Média NPS"},
-            gauge={
-                "axis": {"range": [0, 10]},
-                "bar": {"color": COLORS["primary"]},
-                "steps": [
-                    {"range": [0, 6], "color": "#333"},
-                    {"range": [6, 8], "color": "#555"},
-                    {"range": [8, 10], "color": "#777"},
-                ],
-            },
-        )
+    selected_origins = st.sidebar.multiselect(
+        "Origem do Lead",
+        options=origins,
+        default=[],
+        placeholder="Todas as origens",
     )
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-    st.plotly_chart(fig, width="stretch")
 
-with col3:
-    st.subheader("Estágio do Funil")
-    stages = [d["llm_results"]["sales"].get("funnel_stage", "unknown") for d in processed_data]
-    stage_counts = pd.Series(stages).value_counts()
+    # Salvar filtros no session_state
+    st.session_state.filters = {
+        "agents": selected_agents,
+        "origins": selected_origins,
+    }
 
-    fig = px.bar(
-        x=stage_counts.index,
-        y=stage_counts.values,
-        title="Distribuição do Funil",
-        labels={"x": "Estágio", "y": "Chats"},
-        color=stage_counts.values,
-        color_continuous_scale="Viridis",
+    # ================================================================
+    # RESUMO DOS DADOS CARREGADOS
+    # ================================================================
+
+    st.subheader("📋 Resumo dos Dados")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    col1.metric("Total de Chats", f"{len(chats):,}")
+
+    agents_count = len(set(c.agent.name for c in chats if c.agent))
+    col2.metric("Agentes", agents_count)
+
+    origins_count = len(set(get_lead_origin(c) for c in chats))
+    col3.metric("Origens de Lead", origins_count)
+
+    # Período dos dados
+    dates = [c.firstMessageDate for c in chats if c.firstMessageDate]
+    if dates:
+        min_date = min(dates).strftime("%d/%m/%Y")
+        max_date = max(dates).strftime("%d/%m/%Y")
+        col4.metric("Período", f"{min_date} - {max_date}")
+
+    st.markdown("---")
+
+    # ================================================================
+    # MÉTRICAS RÁPIDAS
+    # ================================================================
+
+    st.subheader("📈 Métricas Rápidas")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    # TME médio
+    waiting_times = [c.waitingTime for c in chats if c.waitingTime]
+    avg_tme = (sum(waiting_times) / len(waiting_times) / 60) if waiting_times else 0
+    col1.metric("TME Médio", f"{avg_tme:.1f} min")
+
+    # Com bot
+    with_bot = sum(1 for c in chats if c.withBot == "true")
+    bot_rate = (with_bot / len(chats) * 100) if chats else 0
+    col2.metric("% Com Bot", f"{bot_rate:.1f}%")
+
+    # Tags mais comum
+    from src.dashboard_utils import get_chat_tags
+
+    all_tags = []
+    for c in chats:
+        all_tags.extend(get_chat_tags(c))
+    if all_tags:
+        from collections import Counter
+
+        most_common = Counter(all_tags).most_common(1)[0]
+        col3.metric("Tag Mais Comum", most_common[0][:20])
+
+    # Origem mais comum
+    all_origins = [get_lead_origin(c) for c in chats]
+    if all_origins:
+        most_common_origin = Counter(all_origins).most_common(1)[0]
+        col4.metric("Origem Principal", most_common_origin[0][:25])
+
+    st.markdown("---")
+    st.info("👈 Use o menu lateral para navegar entre as análises detalhadas.")
+
+else:
+    st.warning("⚠️ Carregue os dados usando o botão na barra lateral para visualizar as análises.")
+    st.info(
+        "Se estiver usando BigQuery, certifique-se de que as variáveis de ambiente estão configuradas corretamente."
     )
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-    st.plotly_chart(fig, width="stretch")
-
-st.markdown("---")
-
-# === SALES FUNNEL ===
-st.header("📊 Funil de Vendas")
-
-col1, col2 = st.columns([1, 1])
-
-with col1:
-    funnel_data = report["sales_funnel"]
-    stages = list(funnel_data.keys())
-    values = list(funnel_data.values())
-
-    # Translate stages
-    stage_labels = {"converted": "✅ Convertido", "lost": "❌ Perdido", "in_progress": "⏳ Em Progresso"}
-    stages_pt = [stage_labels.get(s, s) for s in stages]
-
-    fig = go.Figure(
-        go.Funnel(
-            y=stages_pt,
-            x=values,
-            textinfo="value+percent initial",
-            marker={"color": [COLORS["success"], COLORS["danger"], COLORS["warning"]][: len(stages)]},
-        )
-    )
-    fig.update_layout(title="Status das Conversas", paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-    st.plotly_chart(fig, width="stretch")
-
-with col2:
-    st.subheader("Motivos de Perda")
-    loss_reasons = report.get("loss_reasons", {})
-
-    if loss_reasons:
-        reasons = list(loss_reasons.keys())
-        counts = list(loss_reasons.values())
-
-        fig = px.bar(
-            x=reasons,
-            y=counts,
-            title="Distribuição de Motivos",
-            labels={"x": "Motivo", "y": "Quantidade"},
-            color=counts,
-            color_continuous_scale="Reds",
-        )
-        fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
-        st.plotly_chart(fig, width="stretch")
-    else:
-        st.info("Nenhum motivo de perda registrado.")
-
-# === FOOTER ===
-st.markdown("---")
-st.caption("📌 Dashboard de Análise SDR | Desenvolvido com Streamlit")

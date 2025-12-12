@@ -115,7 +115,11 @@ def load_chats_from_json(file_path: str) -> List[Chat]:
     return chats
 
 
-def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = None) -> List[Chat]:
+def load_chats_from_bigquery(
+    days: Optional[int] = None,
+    limit: Optional[int] = None,
+    lightweight: bool = True,
+) -> List[Chat]:
     """
     Carrega e anonimiza conversas do BigQuery, convertendo-as em objetos Chat.
 
@@ -129,6 +133,7 @@ def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = 
     Args:
         days: Número de dias retroativos para a busca (sobrescreve a variável de ambiente ANALYSIS_DAYS).
         limit: Número máximo de chats a serem retornados (opcional).
+        lightweight: Se True, exclui o campo 'messages' para carregamento mais rápido.
 
     Returns:
         Uma lista de objetos Chat com os dados sensíveis anonimizados.
@@ -161,13 +166,30 @@ def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = 
     start_date_str = start_date.strftime("%Y-%m-%d")
 
     # Constrói a query SQL
-    # A query é parametrizada para evitar SQL Injection
-    query = f"""
-    SELECT *
-    FROM `{project_id}.{dataset}.{table}`
-    WHERE DATE(firstMessageDate) >= @start_date
-    ORDER BY firstMessageDate DESC
-    """  # nosec B608 - A construção da query é segura, pois os parâmetros vêm de env vars.
+    # Modo lightweight exclui o campo 'messages' que é o mais pesado
+    if lightweight:
+        # Campos essenciais para dashboard (sem messages)
+        fields = """
+            id, number, channel, contact, agent, pastAgents,
+            firstMessageDate, lastMessageDate, messagesCount,
+            status, closed, waitingTime, tags,
+            withBot, unreadMessages, octavia_analysis
+        """
+        # Criar lista vazia de mensagens para o modelo
+        query = f"""
+        SELECT
+            {fields}
+        FROM `{project_id}.{dataset}.{table}`
+        WHERE DATE(firstMessageDate) >= @start_date
+        ORDER BY firstMessageDate DESC
+        """
+    else:
+        query = f"""
+        SELECT *
+        FROM `{project_id}.{dataset}.{table}`
+        WHERE DATE(firstMessageDate) >= @start_date
+        ORDER BY firstMessageDate DESC
+        """  # nosec B608 - A construção da query é segura, pois os parâmetros vêm de env vars.
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -175,12 +197,14 @@ def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = 
         ]
     )
 
-    # Adiciona o limite à query, se especificado
-    if limit:
-        query += f"\nLIMIT {limit}"
+    # Adiciona o limite à query, se especificado (default: 5000 para performance)
+    effective_limit = limit if limit else 5000
+    query += f"\nLIMIT {effective_limit}"
 
     print(f"Consultando o BigQuery: {project_id}.{dataset}.{table}")
     print(f"Filtro de data: >= {start_date_str} ({analysis_days} dias)")
+    print(f"Modo: {'Lightweight (sem mensagens)' if lightweight else 'Completo'}")
+    print(f"Limite: {effective_limit} chats")
 
     # Executa a query
     query_job = client.query(query, job_config=job_config)
@@ -195,6 +219,10 @@ def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = 
     errors = 0
     for item in rows:
         try:
+            # Em modo lightweight, adicionar lista vazia de mensagens
+            if lightweight and "messages" not in item:
+                item["messages"] = []
+
             # Etapa de anonimização antes da validação
             anonymized_item = _anonymize_chat_data(item)
             chat = Chat(**anonymized_item)
@@ -209,6 +237,61 @@ def load_chats_from_bigquery(days: Optional[int] = None, limit: Optional[int] = 
 
     print(f"Foram processados {len(chats)} chats com sucesso")
     return chats
+
+
+def load_aggregated_metrics_from_bigquery(days: Optional[int] = None) -> dict:
+    """
+    Carrega métricas agregadas diretamente do BigQuery (mais rápido).
+
+    Retorna estatísticas pré-calculadas sem precisar carregar todos os chats.
+    """
+    project_id = os.getenv("BIGQUERY_PROJECT_ID")
+    dataset = os.getenv("BIGQUERY_DATASET")
+    table = os.getenv("BIGQUERY_TABLE")
+    credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    default_days = int(os.getenv("ANALYSIS_DAYS", "7"))
+
+    if not all([project_id, dataset, table]):
+        return {}
+
+    if credentials_path:
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+
+    client = bigquery.Client(project=project_id)
+
+    analysis_days = days if days is not None else default_days
+    start_date = datetime.now() - timedelta(days=analysis_days)
+    start_date_str = start_date.strftime("%Y-%m-%d")
+
+    query = f"""
+    SELECT
+        COUNT(*) as total_chats,
+        AVG(waitingTime) as avg_waiting_time,
+        AVG(messagesCount) as avg_messages,
+        COUNTIF(withBot = 'true') as with_bot_count,
+        COUNT(DISTINCT JSON_EXTRACT_SCALAR(agent, '$.name')) as unique_agents
+    FROM `{project_id}.{dataset}.{table}`
+    WHERE DATE(firstMessageDate) >= @start_date
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("start_date", "STRING", start_date_str),
+        ]
+    )
+
+    try:
+        result = list(client.query(query, job_config=job_config).result())[0]
+        return {
+            "total_chats": result.total_chats or 0,
+            "avg_waiting_time": result.avg_waiting_time or 0,
+            "avg_messages": result.avg_messages or 0,
+            "with_bot_count": result.with_bot_count or 0,
+            "unique_agents": result.unique_agents or 0,
+        }
+    except Exception as e:
+        print(f"Erro ao carregar métricas agregadas: {e}")
+        return {}
 
 
 def get_data_source() -> str:

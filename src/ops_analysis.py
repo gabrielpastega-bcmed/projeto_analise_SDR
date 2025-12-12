@@ -62,7 +62,7 @@ def _prepare_dataframes(chats: List[Chat]) -> Tuple[pd.DataFrame, pd.DataFrame]:
             "chat_id": msg.chatId,
             "timestamp": msg.time,
             "is_agent": (msg.sentBy and msg.sentBy.type == "agent")
-            or (msg.sentBy and msg.sentBy.email and "bcmed.com.br" in msg.sentBy.email),
+            or (msg.sentBy and msg.sentBy.email and "company.exemplo.com" in msg.sentBy.email),
         }
         for chat in chats
         for msg in chat.messages

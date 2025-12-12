@@ -144,3 +144,14 @@ credentials/
 !data/raw/*.json
 !package.json
 !package-lock.json
+
+# =======================================================
+# LGPD - SENSITIVE DATA FILES (NEVER COMMIT!)
+# =======================================================
+# BigQuery sample files contain real customer PII
+data/raw/bigquery_sample.json
+data/raw/bigquery_deep_analysis.json
+
+# Scripts that extract real data
+scripts/extract_bigquery_sample.py
+scripts/deep_analysis.py

@@ -57,7 +57,7 @@ def sample_chats_for_metrics():
 # Mock de dados mais detalhado para o teste de performance de agente
 @pytest.fixture
 def chat_for_agent_performance():
-    agent = Agent(id="a1", name="Agent Smith", email="agent@bcmed.com.br")
+    agent = Agent(id="a1", name="Agent Smith", email="agent@company.exemplo.com")
     return [
         Chat(
             id="chat-perf",

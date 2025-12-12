@@ -62,7 +62,7 @@ O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
     # Dashboard interativo
     poetry run streamlit run dashboard.py
     ```
-    
+
     Acesse em: `http://localhost:8501`
 
 === "Executar Análise CLI"
@@ -87,7 +87,7 @@ O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
 ## 📚 Navegação
 
 | Seção | Descrição |
-|-------|-----------| 
+|-------|-----------|
 | [Guia do Usuário](user-guide/overview.md) | Para quem vai usar o sistema |
 | [Manual Técnico](technical/architecture.md) | Para desenvolvedores |
 | [Contribuindo](contributing.md) | Como colaborar |
@@ -98,7 +98,7 @@ O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
 
 !!! success "TME (Tempo Médio de Espera)"
     Tempo até a primeira resposta **humana** (não bot).
-    
+
     **Meta recomendada:** < 2 minutos
 
 !!! info "Taxa de Qualificação"

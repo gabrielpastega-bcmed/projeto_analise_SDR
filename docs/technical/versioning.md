@@ -97,7 +97,7 @@ print(version("projeto-analise-sdr"))
 
 ## ❓ Preciso de Packages/PyPI?
 
-**Não para este projeto.** 
+**Não para este projeto.**
 
 | Cenário | Recomendação |
 |---------|--------------|

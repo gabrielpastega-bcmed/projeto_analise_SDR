@@ -50,9 +50,7 @@ business_hours_only = st.sidebar.checkbox(
 filtered_chats = chats
 if business_hours_only:
     filtered_chats = [
-        c
-        for c in chats
-        if c.firstMessageDate and classify_contact_context(c.firstMessageDate) == "horario_comercial"
+        c for c in chats if c.firstMessageDate and classify_contact_context(c.firstMessageDate) == "horario_comercial"
     ]
     if len(filtered_chats) == 0:
         st.warning("Nenhum chat com horário comercial encontrado. Desmarque o filtro para ver todos os dados.")

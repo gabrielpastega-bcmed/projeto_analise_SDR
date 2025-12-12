@@ -3,7 +3,7 @@ Utilitários compartilhados para o dashboard multi-página.
 """
 
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
 import plotly.io as pio
 import pytz
@@ -15,7 +15,7 @@ import streamlit as st
 
 TIMEZONE = pytz.timezone("America/Sao_Paulo")
 
-BUSINESS_HOURS = {
+BUSINESS_HOURS: Dict[str, Union[int, List[int]]] = {
     "start": 8,
     "end": 18,
     "weekdays": [0, 1, 2, 3, 4],  # Seg-Sex
@@ -35,12 +35,17 @@ TAG_GROUPS = {
 
 # Classificação para métricas de conversão (suporta ambos formatos)
 TAGS_CONVERTIDO = [
-    "Perfil Qualificado Plus", "Perfil Qualificado",  # BigQuery
-    "Lead Qualificado Plus", "Lead Qualificado",       # Mock
+    "Perfil Qualificado Plus",
+    "Perfil Qualificado",  # BigQuery
+    "Lead Qualificado Plus",
+    "Lead Qualificado",  # Mock
 ]
 TAGS_NAO_CONVERTIDO = [
-    "Perfil Indefinido", "Fora de perfil", "Neutro",  # BigQuery
-    "Lead Indefinido", "Fora de Perfil",               # Mock
+    "Perfil Indefinido",
+    "Fora de perfil",
+    "Neutro",  # BigQuery
+    "Lead Indefinido",
+    "Fora de Perfil",  # Mock
 ]
 TAGS_OUTROS = ["Procedimento", "Pós-Vendas"]
 
@@ -53,10 +58,10 @@ ORIGENS_PRINCIPAIS = [
     "SDR - Google Pago",
     "SDR - SMS",
     "Anúncio Online",  # Mock
-    "Site",            # Mock
-    "Indicação",       # Mock
-    "Instagram",       # Mock
-    "Google",          # Mock
+    "Site",  # Mock
+    "Indicação",  # Mock
+    "Instagram",  # Mock
+    "Google",  # Mock
 ]
 
 
@@ -141,9 +146,14 @@ def classify_contact_context(first_message_date: datetime) -> str:
     hour = local_dt.hour
     weekday = local_dt.weekday()
 
-    if weekday not in BUSINESS_HOURS["weekdays"]:
+    # Cast explicit para mypy
+    weekdays = BUSINESS_HOURS["weekdays"]
+    start_hour = BUSINESS_HOURS["start"]
+    end_hour = BUSINESS_HOURS["end"]
+
+    if weekday not in weekdays:  # type: ignore[operator]
         return "fora_expediente"
-    elif hour < BUSINESS_HOURS["start"] or hour >= BUSINESS_HOURS["end"]:
+    elif hour < start_hour or hour >= end_hour:  # type: ignore[operator]
         return "fora_expediente"
     else:
         return "horario_comercial"

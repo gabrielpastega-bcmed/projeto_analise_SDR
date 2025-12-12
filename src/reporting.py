@@ -4,6 +4,7 @@ Módulo para agregação e geração de relatórios consolidados.
 Este módulo recebe os dados processados das análises operacional e qualitativa
 e os consolida em um relatório final estruturado.
 """
+
 from collections import Counter
 from typing import Any, Dict, List
 

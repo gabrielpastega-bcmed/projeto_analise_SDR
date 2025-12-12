@@ -6,6 +6,7 @@ classe `LLMAnalyzer` que orquestra as chamadas a um serviço de LLM.
 
 Atualmente, o módulo retorna dados MOCK para simular a resposta do LLM.
 """
+
 import asyncio
 from typing import Any, Dict
 

@@ -130,8 +130,7 @@ def test_analyze_agent_performance(chat_for_agent_performance):
 
     # TMA é o tempo total do chat (Ter 08:00 BRT - Seg 10:00 BRT).
     tma_expected = (
-        datetime(2023, 10, 17, 11, 0, 0, tzinfo=pytz.UTC)
-        - datetime(2023, 10, 16, 13, 0, 0, tzinfo=pytz.UTC)
+        datetime(2023, 10, 17, 11, 0, 0, tzinfo=pytz.UTC) - datetime(2023, 10, 16, 13, 0, 0, tzinfo=pytz.UTC)
     ).total_seconds()
     assert agent_perf["avg_tma_seconds"] == pytest.approx(tma_expected)
 

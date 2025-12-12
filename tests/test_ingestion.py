@@ -1,6 +1,7 @@
 """
 Testes para o módulo de ingestão de dados.
 """
+
 import json
 from unittest.mock import mock_open, patch
 

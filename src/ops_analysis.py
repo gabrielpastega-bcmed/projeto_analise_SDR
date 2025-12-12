@@ -10,6 +10,7 @@ Ele calcula:
 - Volume de mensagens (heatmap)
 - Frequência de tags
 """
+
 from datetime import time
 from typing import Dict, List, Tuple, TypedDict
 
@@ -162,16 +163,14 @@ def analyze_agent_performance(chats: List[Chat]) -> List[AgentPerformance]:
     )
 
     # Calcula as médias
-    agent_summary["avg_tme_seconds"] = (
-        agent_summary["total_tme_weighted"] / agent_summary["total_responses"]
-    ).fillna(0)
+    agent_summary["avg_tme_seconds"] = (agent_summary["total_tme_weighted"] / agent_summary["total_responses"]).fillna(
+        0
+    )
     agent_summary["avg_tma_seconds"] = (agent_summary["total_tma"] / agent_summary["chats"]).fillna(0)
 
     # Formata a saída
     agent_summary = agent_summary.rename(columns={"agent_name": "agent"})
-    results = agent_summary[
-        ["agent", "chats", "avg_tme_seconds", "avg_tma_seconds"]
-    ].to_dict(orient="records")
+    results = agent_summary[["agent", "chats", "avg_tme_seconds", "avg_tma_seconds"]].to_dict(orient="records")
 
     # Ordena por TME
     return sorted(results, key=lambda x: x["avg_tme_seconds"])

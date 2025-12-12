@@ -276,3 +276,179 @@ class BatchAnalyzer:
                 "total_mentions": len(all_products),
             },
         }
+
+    # ================================================================
+    # BIGQUERY INTEGRATION
+    # ================================================================
+
+    def _get_bigquery_table_id(self) -> str:
+        """Retorna o ID completo da tabela de resultados."""
+        import os
+
+        project = os.getenv("BIGQUERY_PROJECT_ID")
+        dataset = os.getenv("BIGQUERY_DATASET", "octadesk")
+        table = "octadesk_analysis_results"
+        return f"{project}.{dataset}.{table}"
+
+    def save_to_bigquery(
+        self,
+        results: List[Dict[str, Any]],
+        week_start: datetime,
+        week_end: datetime,
+    ) -> int:
+        """
+        Salva os resultados de análise no BigQuery.
+
+        Args:
+            results: Lista de resultados da análise.
+            week_start: Início da semana analisada.
+            week_end: Fim da semana analisada.
+
+        Returns:
+            Número de linhas inseridas.
+        """
+        from google.cloud import bigquery
+
+        client = bigquery.Client()
+        table_id = self._get_bigquery_table_id()
+
+        rows_to_insert = []
+        for r in results:
+            if "error" in r:
+                continue  # Pula resultados com erro
+
+            analysis = r.get("analysis", {})
+            cx = analysis.get("cx", {})
+            sales = analysis.get("sales", {})
+            product = analysis.get("product", {})
+            qa = analysis.get("qa", {})
+
+            row = {
+                "chat_id": r.get("chat_id"),
+                "week_start": week_start.strftime("%Y-%m-%d"),
+                "week_end": week_end.strftime("%Y-%m-%d"),
+                "analyzed_at": datetime.now().isoformat(),
+                "agent_name": r.get("agent"),
+                # CX
+                "cx_sentiment": cx.get("sentiment"),
+                "cx_humanization_score": cx.get("humanization_score"),
+                "cx_nps_prediction": cx.get("nps_prediction"),
+                "cx_resolution_status": cx.get("resolution_status"),
+                "cx_satisfaction_comment": cx.get("satisfaction_comment"),
+                # Sales
+                "sales_funnel_stage": sales.get("funnel_stage"),
+                "sales_outcome": sales.get("outcome"),
+                "sales_rejection_reason": sales.get("rejection_reason"),
+                "sales_next_step": sales.get("next_step"),
+                # Product
+                "products_mentioned": product.get("products_mentioned", []),
+                "interest_level": product.get("interest_level"),
+                "trends": product.get("trends", []),
+                # QA
+                "qa_script_adherence": qa.get("script_adherence"),
+                "key_questions_asked": qa.get("key_questions_asked", []),
+                "improvement_areas": qa.get("improvement_areas", []),
+            }
+            rows_to_insert.append(row)
+
+        if not rows_to_insert:
+            print("Nenhum resultado valido para salvar.")
+            return 0
+
+        errors = client.insert_rows_json(table_id, rows_to_insert)
+        if errors:
+            print(f"Erros ao inserir: {errors}")
+            return 0
+
+        print(f"[OK] {len(rows_to_insert)} resultados salvos no BigQuery")
+        return len(rows_to_insert)
+
+    def load_from_bigquery(
+        self,
+        week_start: Optional[datetime] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Carrega resultados de análise do BigQuery.
+
+        Args:
+            week_start: Início da semana a carregar. Se None, carrega a mais recente.
+
+        Returns:
+            Lista de resultados da análise.
+        """
+        from google.cloud import bigquery
+
+        client = bigquery.Client()
+        table_id = self._get_bigquery_table_id()
+
+        if week_start:
+            query = f"""
+            SELECT *
+            FROM `{table_id}`
+            WHERE week_start = '{week_start.strftime("%Y-%m-%d")}'
+            ORDER BY analyzed_at DESC
+            """
+        else:
+            query = f"""
+            SELECT *
+            FROM `{table_id}`
+            WHERE week_start = (SELECT MAX(week_start) FROM `{table_id}`)
+            ORDER BY analyzed_at DESC
+            """
+
+        results = client.query(query).result()
+        return [dict(row) for row in results]
+
+    def get_available_weeks(self) -> List[Dict[str, Any]]:
+        """
+        Retorna as semanas disponíveis para consulta.
+
+        Returns:
+            Lista de dicts com week_start, week_end e count.
+        """
+        from google.cloud import bigquery
+
+        client = bigquery.Client()
+        table_id = self._get_bigquery_table_id()
+
+        query = f"""
+        SELECT
+            week_start,
+            week_end,
+            COUNT(*) as total_chats,
+            COUNT(DISTINCT agent_name) as total_agents
+        FROM `{table_id}`
+        GROUP BY week_start, week_end
+        ORDER BY week_start DESC
+        LIMIT 52
+        """
+
+        try:
+            results = client.query(query).result()
+            return [dict(row) for row in results]
+        except Exception:
+            return []
+
+    def get_analyzed_chat_ids(self, week_start: datetime) -> set:
+        """
+        Retorna os IDs dos chats já analisados em uma semana.
+
+        Args:
+            week_start: Início da semana.
+
+        Returns:
+            Set de chat_ids já analisados.
+        """
+        from google.cloud import bigquery
+
+        client = bigquery.Client()
+        table_id = self._get_bigquery_table_id()
+
+        query = f"""
+        SELECT DISTINCT chat_id
+        FROM `{table_id}`
+        WHERE week_start = '{week_start.strftime("%Y-%m-%d")}'
+        """
+
+        results = client.query(query).result()
+        return {row.chat_id for row in results}

@@ -1,159 +1,211 @@
-from datetime import datetime, time
-from typing import Any, Dict, List, TypedDict
+"""
+Módulo para análise de métricas operacionais a partir de dados de chat.
 
+Este módulo foi refatorado para usar a biblioteca `pandas` para otimização de
+desempenho, permitindo a análise eficiente de grandes volumes de dados.
+Ele calcula:
+- Tempo Médio de Espera (TME)
+- Tempo Médio de Atendimento (TMA)
+- Desempenho de agentes
+- Volume de mensagens (heatmap)
+- Frequência de tags
+"""
+
+from datetime import time
+from typing import Dict, List, Tuple, TypedDict
+
+import pandas as pd
 import pytz
 
 from src.models import Chat
 
 
 class AgentPerformance(TypedDict):
+    """
+    Define a estrutura de dados para o dicionário de desempenho do agente.
+    """
+
     agent: str
     chats: int
     avg_tme_seconds: float
     avg_tma_seconds: float
 
 
-# Define timezone (assuming Sao Paulo based on user context)
+# Define o fuso horário para conversões
 TZ = pytz.timezone("America/Sao_Paulo")
 
 
-def is_business_hour(dt: datetime) -> bool:
+def _prepare_dataframes(chats: List[Chat]) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Checks if a datetime is within business hours:
-    Mon-Thu: 08:00 - 18:00
-    Fri: 08:00 - 17:00
+    Converte uma lista de objetos Chat em DataFrames otimizados para análise.
+
+    Args:
+        chats: A lista de objetos Chat.
+
+    Returns:
+        Uma tupla contendo dois DataFrames: (chats_df, messages_df).
     """
-    # Ensure dt is timezone aware, convert to Sao Paulo if needed
-    if dt.tzinfo is None:
-        dt = pytz.utc.localize(dt)
+    # Transforma os chats em um DataFrame
+    chats_data = [
+        {
+            "chat_id": chat.id,
+            "agent_name": chat.agent.name if chat.agent else "Sem Agente",
+            "tags": [tag["name"] for tag in chat.tags] if chat.tags else [],
+        }
+        for chat in chats
+    ]
+    chats_df = pd.DataFrame(chats_data)
 
-    dt_local = dt.astimezone(TZ)
+    # Transforma as mensagens em um DataFrame
+    messages_data = [
+        {
+            "chat_id": msg.chatId,
+            "timestamp": msg.time,
+            "is_agent": (msg.sentBy and msg.sentBy.type == "agent")
+            or (msg.sentBy and msg.sentBy.email and "empresa.com.br" in msg.sentBy.email),
+        }
+        for chat in chats
+        for msg in chat.messages
+    ]
+    messages_df = pd.DataFrame(messages_data)
+    # Converte a coluna de timestamp para datetime com fuso horário UTC
+    messages_df["timestamp"] = pd.to_datetime(messages_df["timestamp"], utc=True)
 
-    weekday = dt_local.weekday()  # 0=Mon, 6=Sun
-    current_time = dt_local.time()
-
-    if 0 <= weekday <= 3:  # Mon-Thu
-        return time(8, 0) <= current_time <= time(18, 0)
-    elif weekday == 4:  # Fri
-        return time(8, 0) <= current_time <= time(17, 0)
-
-    return False
+    return chats_df, messages_df
 
 
-def calculate_response_times(chat: Chat) -> Dict[str, Any]:
+def _calculate_metrics_in_batches(messages_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculates TME (Average Wait Time) and TMA (Handle Time) for a chat.
-    Only considers business hours for TME.
+    Calcula TME e TMA de forma vetorizada usando pandas.
     """
-    messages = sorted(chat.messages, key=lambda m: m.time)
-    if not messages:
-        return {"tme_seconds": 0, "tma_seconds": 0, "response_count": 0}
+    if messages_df.empty:
+        return pd.DataFrame(columns=["chat_id", "tme_seconds", "tma_seconds", "response_count"])
 
-    total_wait_time = 0.0
-    response_count = 0
-    last_customer_msg_time = None
+    # Ordena as mensagens por chat e tempo
+    messages_df = messages_df.sort_values(by=["chat_id", "timestamp"])
 
-    # TMA: Duration from first to last message
-    start_time = messages[0].time
-    end_time = messages[-1].time
-    tma_seconds = (end_time - start_time).total_seconds()
+    # Identifica o remetente da mensagem anterior, preenchendo NA com False
+    # Isso corrige o bug onde a primeira mensagem era ignorada na comparação.
+    messages_df["prev_is_agent"] = messages_df.groupby("chat_id")["is_agent"].shift(1).fillna(False)
+    messages_df["prev_timestamp"] = messages_df.groupby("chat_id")["timestamp"].shift(1)
 
-    for msg in messages:
-        # Identify sender type (heuristic based on email or type)
-        is_agent = False
-        if msg.sentBy and msg.sentBy.type == "agent":
-            is_agent = True
-        elif msg.sentBy and msg.sentBy.email and "empresa.com.br" in msg.sentBy.email:
-            is_agent = True
+    # Filtra apenas as respostas do agente a mensagens do cliente
+    agent_responses = messages_df[messages_df["is_agent"] & ~messages_df["prev_is_agent"]].copy()
 
-        if not is_agent:
-            # Customer message
-            last_customer_msg_time = msg.time
-        elif last_customer_msg_time:
-            # Agent response to a customer message
-            if is_business_hour(msg.time):
-                wait_seconds = (msg.time - last_customer_msg_time).total_seconds()
-                total_wait_time += wait_seconds
-                response_count += 1
-                last_customer_msg_time = None  # Reset
+    # --- Cálculo do TME (Tempo Médio de Espera) ---
+    # Converte o timestamp para o fuso horário local
+    agent_responses["local_time"] = agent_responses["timestamp"].dt.tz_convert(TZ)
+    dt = agent_responses["local_time"].dt
 
-    avg_wait_time = total_wait_time / response_count if response_count > 0 else 0
+    # Verifica se a resposta está dentro do horário comercial
+    is_weekday = dt.weekday < 5
+    is_friday = dt.weekday == 4
+    is_work_hour_mon_thu = (dt.time >= time(8, 0)) & (dt.time <= time(18, 0)) & ~is_friday
+    is_work_hour_fri = (dt.time >= time(8, 0)) & (dt.time <= time(17, 0)) & is_friday
 
-    return {"tme_seconds": avg_wait_time, "tma_seconds": tma_seconds, "response_count": response_count}
+    agent_responses["is_business_hour"] = is_weekday & (is_work_hour_mon_thu | is_work_hour_fri)
+    responses_in_business_hours = agent_responses[agent_responses["is_business_hour"]].copy()
+
+    # Calcula a diferença de tempo em segundos
+    responses_in_business_hours["wait_time"] = (
+        responses_in_business_hours["timestamp"] - responses_in_business_hours["prev_timestamp"]
+    ).dt.total_seconds()
+
+    # Agrega o tempo de espera e a contagem de respostas por chat
+    tme_stats = (
+        responses_in_business_hours.groupby("chat_id")
+        .agg(total_wait_time=("wait_time", "sum"), response_count=("wait_time", "size"))
+        .reset_index()
+    )
+    tme_stats["tme_seconds"] = tme_stats["total_wait_time"] / tme_stats["response_count"]
+
+    # --- Cálculo do TMA (Tempo Médio de Atendimento) ---
+    chat_durations = messages_df.groupby("chat_id")["timestamp"].agg(["min", "max"])
+    chat_durations["tma_seconds"] = (chat_durations["max"] - chat_durations["min"]).dt.total_seconds()
+    tma_stats = chat_durations[["tma_seconds"]].reset_index()
+
+    # Combina as métricas de TME e TMA
+    final_metrics = pd.merge(tma_stats, tme_stats, on="chat_id", how="left").fillna(0)
+
+    return final_metrics[["chat_id", "tme_seconds", "tma_seconds", "response_count"]]
 
 
 def analyze_agent_performance(chats: List[Chat]) -> List[AgentPerformance]:
     """
-    Aggregates performance metrics by agent.
+    Agrega as métricas de desempenho por agente de forma otimizada.
+
+    Args:
+        chats: Uma lista de objetos Chat.
+
+    Returns:
+        Uma lista de dicionários AgentPerformance, ordenada pelo TME mais rápido.
     """
-    agent_stats: Dict[str, Dict[str, float]] = {}
+    chats_df, messages_df = _prepare_dataframes(chats)
+    if chats_df.empty or messages_df.empty:
+        return []
 
-    for chat in chats:
-        if not chat.agent:
-            continue
+    # Calcula as métricas por chat
+    metrics_df = _calculate_metrics_in_batches(messages_df)
 
-        agent_name = chat.agent.name
-        metrics = calculate_response_times(chat)
+    # Junta as métricas com as informações do agente
+    agent_data = pd.merge(chats_df, metrics_df, on="chat_id", how="left").fillna(0)
 
-        if agent_name not in agent_stats:
-            agent_stats[agent_name] = {"chats": 0.0, "total_tme": 0.0, "total_tma": 0.0, "response_count": 0.0}
-
-        agent_stats[agent_name]["chats"] += 1.0
-        agent_stats[agent_name]["total_tme"] += metrics["tme_seconds"] * metrics["response_count"]
-        agent_stats[agent_name]["total_tma"] += metrics["tma_seconds"]
-        agent_stats[agent_name]["response_count"] += metrics["response_count"]
-
-    # Calculate averages
-    results: List[AgentPerformance] = []
-    for name, stats in agent_stats.items():
-        avg_tme = stats["total_tme"] / stats["response_count"] if stats["response_count"] > 0 else 0.0
-        avg_tma = stats["total_tma"] / stats["chats"] if stats["chats"] > 0 else 0.0
-
-        results.append(
-            AgentPerformance(
-                agent=name,
-                chats=int(stats["chats"]),
-                avg_tme_seconds=avg_tme,
-                avg_tma_seconds=avg_tma,
-            )
+    # Agrega as estatísticas por agente
+    agent_summary = (
+        agent_data.groupby("agent_name")
+        .agg(
+            chats=("chat_id", "count"),
+            total_tme_weighted=("tme_seconds", lambda x: (x * agent_data.loc[x.index, "response_count"]).sum()),
+            total_tma=("tma_seconds", "sum"),
+            total_responses=("response_count", "sum"),
         )
+        .reset_index()
+    )
 
-    return sorted(results, key=lambda x: x["avg_tme_seconds"])  # Sort by fastest response
+    # Calcula as médias
+    agent_summary["avg_tme_seconds"] = (agent_summary["total_tme_weighted"] / agent_summary["total_responses"]).fillna(
+        0
+    )
+    agent_summary["avg_tma_seconds"] = (agent_summary["total_tma"] / agent_summary["chats"]).fillna(0)
+
+    # Formata a saída
+    agent_summary = agent_summary.rename(columns={"agent_name": "agent"})
+    results = agent_summary[["agent", "chats", "avg_tme_seconds", "avg_tma_seconds"]].to_dict(orient="records")
+
+    # Ordena por TME
+    return sorted(results, key=lambda x: x["avg_tme_seconds"])
 
 
 def analyze_heatmap(chats: List[Chat]) -> Dict[str, Dict[int, int]]:
     """
-    Generates a heatmap of message volume by day of week and hour.
-    Returns:
-        Dict with keys "0" (Mon) to "6" (Sun), each containing a dict of hour (0-23) -> count.
+    Gera um mapa de calor do volume de mensagens por dia da semana e hora.
     """
-    heatmap: Dict[str, Dict[int, int]] = {str(i): {h: 0 for h in range(24)} for i in range(7)}
+    _, messages_df = _prepare_dataframes(chats)
+    if messages_df.empty:
+        return {}
 
-    for chat in chats:
-        for msg in chat.messages:
-            # Ensure timezone awareness
-            dt = msg.time
-            if dt.tzinfo is None:
-                dt = pytz.utc.localize(dt)
-            dt_local = dt.astimezone(TZ)
+    messages_df["local_time"] = messages_df["timestamp"].dt.tz_convert(TZ)
+    messages_df["weekday"] = messages_df["local_time"].dt.weekday.astype(str)
+    messages_df["hour"] = messages_df["local_time"].dt.hour
 
-            day = str(dt_local.weekday())
-            hour = dt_local.hour
-            heatmap[day][hour] += 1
+    heatmap_data = messages_df.groupby(["weekday", "hour"]).size().unstack(fill_value=0)
 
-    return heatmap
+    # Garante que todos os dias e horas estejam presentes
+    heatmap_full = pd.DataFrame(0, index=map(str, range(7)), columns=range(24))
+    heatmap_full.update(heatmap_data)
+
+    return heatmap_full.to_dict(orient="index")
 
 
 def analyze_tags(chats: List[Chat]) -> Dict[str, int]:
     """
-    Counts the frequency of each tag.
+    Conta a frequência de cada tag nos chats.
     """
-    tag_counts: Dict[str, int] = {}
+    chats_df, _ = _prepare_dataframes(chats)
+    if chats_df.empty:
+        return {}
 
-    for chat in chats:
-        if chat.tags:
-            for tag in chat.tags:
-                tag_name = tag.get("name", "Unknown")
-                tag_counts[tag_name] = tag_counts.get(tag_name, 0) + 1
+    # "Explode" a lista de tags em linhas individuais e conta a frequência
+    tag_counts = chats_df.explode("tags")["tags"].value_counts().to_dict()
 
-    return dict(sorted(tag_counts.items(), key=lambda item: item[1], reverse=True))
+    return tag_counts

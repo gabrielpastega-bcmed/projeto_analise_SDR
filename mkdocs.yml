@@ -74,6 +74,7 @@ nav:
   - Manual Técnico:
     - Arquitetura: technical/architecture.md
     - Componentes: technical/components.md
+    - Versionamento: technical/versioning.md
     - API Reference: technical/api.md
     - CI/CD: technical/cicd.md
   - Contribuindo: contributing.md

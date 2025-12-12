@@ -14,7 +14,7 @@ O **Dashboard de Análise SDR** é uma ferramenta visual que mostra o desempenho
 ## 👥 Para quem é este sistema?
 
 | Perfil | Como usar |
-|--------|-----------| 
+|--------|-----------|
 | **Gestor de Vendas** | Acompanhar performance diária da equipe |
 | **Coordenador de SDR** | Identificar gargalos e necessidades de treinamento |
 | **Diretoria** | Visão macro dos resultados de conversão |
@@ -44,7 +44,7 @@ O dashboard está organizado em **4 páginas**, cada uma com um foco específico
 
 ---
 
-### Taxa de Qualificação  
+### Taxa de Qualificação
 > 🎯 % de leads classificados como **potenciais compradores**
 
 **Por que importa?** Indica a qualidade do fluxo de leads e efetividade da triagem.

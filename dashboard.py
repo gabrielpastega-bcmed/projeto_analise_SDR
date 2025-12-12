@@ -7,16 +7,21 @@ import nest_asyncio
 import streamlit as st
 
 # Apply nest_asyncio to allow nested event loops in Streamlit
+# This MUST run before importing modules that use asyncio
 nest_asyncio.apply()
 
-from src.dashboard_utils import (
+from src.dashboard_utils import (  # noqa: E402
     apply_custom_css,
     get_colors,
     get_lead_origin,
     init_session_state,
     setup_plotly_theme,
 )
-from src.ingestion import get_data_source, load_chats_from_bigquery, load_chats_from_json
+from src.ingestion import (  # noqa: E402
+    get_data_source,
+    load_chats_from_bigquery,
+    load_chats_from_json,
+)
 
 # Page config
 st.set_page_config(

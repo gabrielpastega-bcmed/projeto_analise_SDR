@@ -140,7 +140,7 @@ if origin_metrics:
         fig_qual.update_layout(showlegend=False, coloraxis_showscale=False)
         st.plotly_chart(fig_qual, width="stretch")
 else:
-    st.info("📊 Nenhum dado de origem disponível. Verifique se os chats possuem o campo `contact.customFields.origem_do_negocio`.")
+    st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
 
 
 # ================================================================

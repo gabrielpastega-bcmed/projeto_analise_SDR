@@ -137,7 +137,7 @@ if not df_tme_hour_filtered.empty:
     # Adicionar área de horário comercial
     fig_tme_hour.add_vrect(
         x0=f"{BUSINESS_HOURS['start']:02d}h",
-        x1=f"{BUSINESS_HOURS['end']-1:02d}h",
+        x1=f"{BUSINESS_HOURS['end'] - 1:02d}h",
         fillcolor=COLORS["success"],
         opacity=0.1,
         annotation_text="Horário Comercial",

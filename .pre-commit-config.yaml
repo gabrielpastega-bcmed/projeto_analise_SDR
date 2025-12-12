@@ -29,6 +29,8 @@ repos:
     rev: v1.13.0
     hooks:
       - id: mypy
+        # Exclude pages/ due to Windows encoding issue with emoji filenames
+        exclude: ^pages/
         additional_dependencies:
           - pydantic
           - pytz

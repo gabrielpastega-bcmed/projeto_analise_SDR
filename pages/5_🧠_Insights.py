@@ -335,15 +335,102 @@ with st.expander("🔧 Executar Nova Análise (Admin)"):
                     st.session_state["test_results"] = results
 
 # ================================================================
-# EXIBIÇÃO DE RESULTADOS DE TESTE
+# CARREGAR ANÁLISE LOCAL
+# ================================================================
+
+st.markdown("---")
+with st.expander("📂 Carregar Análise Local", expanded=False):
+    st.info("Carregue uma análise previamente salva em `data/analysis_results/`")
+
+    import json
+    from pathlib import Path
+
+    results_dir = Path("data/analysis_results")
+    if results_dir.exists():
+        json_files = sorted(results_dir.glob("analysis_*.json"), reverse=True)
+
+        if json_files:
+            file_options = {f.name: f for f in json_files[:10]}  # Últimos 10
+            selected_file = st.selectbox(
+                "Selecione o arquivo de análise:",
+                options=list(file_options.keys()),
+            )
+
+            if st.button("📥 Carregar Análise", type="primary"):
+                try:
+                    with open(file_options[selected_file], encoding="utf-8") as f:
+                        loaded_results = json.load(f)
+                    st.session_state["test_results"] = loaded_results
+                    st.success(f"✅ Carregados {len(loaded_results)} resultados de `{selected_file}`")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao carregar: {e}")
+        else:
+            st.warning("Nenhum arquivo de análise encontrado em `data/analysis_results/`")
+    else:
+        st.warning("Diretório `data/analysis_results/` não existe.")
+
+# ================================================================
+# EXIBIÇÃO DE RESULTADOS DE TESTE / LOCAL
 # ================================================================
 
 if "test_results" in st.session_state and st.session_state["test_results"]:
     test_results = st.session_state["test_results"]
-    test_aggregated = aggregate_bigquery_results(test_results)
 
     st.markdown("---")
-    st.subheader("🧪 Resultados do Teste")
+    st.subheader("🧪 Resultados da Análise")
+
+    # Função para agregar resultados (compatível com formato local)
+    def aggregate_local_results(results):
+        """Agrega resultados locais para exibição."""
+        if not results:
+            return None
+
+        total = len(results)
+
+        # Sentimentos
+        sentiments = {"positivo": 0, "neutro": 0, "negativo": 0}
+        nps_scores = []
+        humanization_scores = []
+        outcomes = {"convertido": 0, "perdido": 0, "em andamento": 0}
+
+        for r in results:
+            # CX - formato local ou BigQuery
+            cx = r.get("cx", {})
+            s = cx.get("sentiment") or r.get("cx_sentiment", "neutro")
+            if s and s.lower() in sentiments:
+                sentiments[s.lower()] += 1
+
+            nps = cx.get("nps_prediction") or r.get("cx_nps_prediction")
+            if nps:
+                nps_scores.append(float(nps))
+
+            hum = cx.get("humanization_score") or r.get("cx_humanization_score")
+            if hum:
+                humanization_scores.append(float(hum))
+
+            # Sales
+            sales = r.get("sales", {})
+            o = sales.get("outcome") or r.get("sales_outcome", "em andamento")
+            if o and o.lower() in outcomes:
+                outcomes[o.lower()] += 1
+
+        return {
+            "total_analyzed": total,
+            "cx": {
+                "sentiment_distribution": sentiments,
+                "avg_nps_prediction": sum(nps_scores) / len(nps_scores) if nps_scores else 0,
+                "avg_humanization_score": sum(humanization_scores) / len(humanization_scores)
+                if humanization_scores
+                else 0,
+            },
+            "sales": {
+                "outcome_distribution": outcomes,
+                "conversion_rate": outcomes["convertido"] / total * 100 if total else 0,
+            },
+        }
+
+    test_aggregated = aggregate_local_results(test_results)
 
     if test_aggregated:
         col1, col2, col3, col4 = st.columns(4)
@@ -352,68 +439,135 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
         col3.metric("Humanização", f"{test_aggregated['cx']['avg_humanization_score']:.1f}/5")
         col4.metric("Taxa de Conversão", f"{test_aggregated['sales']['conversion_rate']:.1f}%")
 
-        # Gráficos de teste
-        import pandas as pd
-        import plotly.express as px
+    st.markdown("---")
 
-        col_left, col_right = st.columns(2)
+    # ================================================================
+    # VISUALIZAÇÃO LADO-A-LADO: CHAT + ANÁLISE
+    # ================================================================
 
-        with col_left:
-            st.markdown("**😊 Sentimento**")
-            sentiment_data = test_aggregated["cx"]["sentiment_distribution"]
-            df_sentiment = pd.DataFrame(
-                [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
+    st.subheader("🔍 Comparar Chat vs Análise")
+
+    # Seletor de chat
+    chat_options = {
+        f"{r.get('chat_id', 'N/A')} - {r.get('agent_name', 'N/A')}": idx for idx, r in enumerate(test_results)
+    }
+
+    selected_chat_label = st.selectbox("Selecione um chat para visualizar:", options=list(chat_options.keys()))
+
+    selected_idx = chat_options[selected_chat_label]
+    selected_result = test_results[selected_idx]
+
+    col_chat, col_analysis = st.columns(2)
+
+    # Coluna da esquerda: Transcrição do Chat
+    with col_chat:
+        st.markdown("### 💬 Transcrição do Chat")
+
+        transcript = selected_result.get("transcript")
+        if transcript:
+            # Exibir transcrição formatada
+            st.text_area(
+                "Conversa",
+                value=transcript,
+                height=400,
+                disabled=True,
+                label_visibility="collapsed",
             )
-            fig_sentiment = px.pie(
-                df_sentiment,
-                values="Quantidade",
-                names="Sentimento",
-                color="Sentimento",
-                color_discrete_map={
-                    "Positivo": COLORS["success"],
-                    "Neutro": COLORS["warning"],
-                    "Negativo": COLORS["danger"],
-                },
-                hole=0.4,
-            )
-            fig_sentiment = apply_chart_theme(fig_sentiment)
-            st.plotly_chart(fig_sentiment, use_container_width=True)
+        else:
+            # Tentar carregar do BigQuery se não tiver transcrição salva
+            chat_id = selected_result.get("chat_id")
+            if chat_id:
+                st.info(f"Transcrição não salva. Carregando chat `{chat_id}` do BigQuery...")
+                try:
+                    from src.ingestion import load_chats_from_bigquery
 
-        with col_right:
-            st.markdown("**📈 Resultados de Vendas**")
-            outcome_data = test_aggregated["sales"]["outcome_distribution"]
-            df_outcome = pd.DataFrame([{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()])
-            fig_outcome = px.bar(
-                df_outcome,
-                x="Resultado",
-                y="Quantidade",
-                color="Resultado",
-                color_discrete_map={
-                    "Convertido": COLORS["success"],
-                    "Perdido": COLORS["danger"],
-                    "Em andamento": COLORS["info"],
-                },
-            )
-            fig_outcome = apply_chart_theme(fig_outcome)
-            fig_outcome.update_layout(showlegend=False)
-            st.plotly_chart(fig_outcome, use_container_width=True)
+                    # Buscar chat específico (últimos 30 dias)
+                    chats = load_chats_from_bigquery(days=30, limit=500, lightweight=False)
+                    chat_match = [c for c in chats if c.id == chat_id]
 
-        # Detalhes individuais
-        with st.expander("📋 Ver Análises Individuais do Teste"):
-            for r in test_results:
-                with st.container():
-                    st.markdown(f"**Chat:** `{r.get('chat_id', 'N/A')}` | **Agente:** {r.get('agent_name', 'N/A')}")
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        cx = r.get("cx", {})
-                        st.write(f"**Sentimento:** {cx.get('sentiment', 'N/A')}")
-                        st.write(f"**NPS:** {cx.get('nps_prediction', 'N/A')}")
-                    with col2:
-                        sales = r.get("sales", {})
-                        st.write(f"**Outcome:** {sales.get('outcome', 'N/A')}")
-                        st.write(f"**Estágio:** {sales.get('funnel_stage', 'N/A')}")
-                    st.markdown("---")
+                    if chat_match:
+                        chat = chat_match[0]
+                        messages_text = []
+                        for msg in chat.messages or []:
+                            sender = "🤖 Bot" if msg.is_bot else ("👤 Agente" if msg.is_agent else "📱 Cliente")
+                            messages_text.append(f"[{sender}]: {msg.content}")
 
-    if st.button("🗑️ Limpar Resultados de Teste"):
+                        transcript_loaded = "\n\n".join(messages_text)
+                        st.text_area(
+                            "Conversa",
+                            value=transcript_loaded,
+                            height=400,
+                            disabled=True,
+                            label_visibility="collapsed",
+                        )
+                    else:
+                        st.warning("Chat não encontrado no BigQuery.")
+                except Exception as e:
+                    st.error(f"Erro ao carregar chat: {e}")
+            else:
+                st.warning("ID do chat não disponível.")
+
+    # Coluna da direita: Análise da LLM
+    with col_analysis:
+        st.markdown("### 🧠 Análise da IA")
+
+        # Tabs para cada tipo de análise
+        tab_cx, tab_sales, tab_product, tab_qa = st.tabs(["😊 CX", "📈 Vendas", "📦 Produto", "✅ QA"])
+
+        cx = selected_result.get("cx", {})
+        sales = selected_result.get("sales", {})
+        product = selected_result.get("product", {})
+        qa = selected_result.get("qa", {})
+
+        with tab_cx:
+            st.metric("Sentimento", cx.get("sentiment", "N/A"))
+            st.metric("NPS Previsto", f"{cx.get('nps_prediction', 'N/A')}/10")
+            st.metric("Humanização", f"{cx.get('humanization_score', 'N/A')}/5")
+            st.write(f"**Status:** {cx.get('resolution_status', 'N/A')}")
+            if cx.get("satisfaction_comment"):
+                st.info(f"💬 {cx.get('satisfaction_comment')}")
+
+        with tab_sales:
+            st.metric("Estágio do Funil", sales.get("funnel_stage", "N/A"))
+            st.metric("Resultado", sales.get("outcome", "N/A"))
+            if sales.get("rejection_reason"):
+                st.warning(f"❌ Motivo de perda: {sales.get('rejection_reason')}")
+            if sales.get("next_step"):
+                st.info(f"➡️ Próximo passo: {sales.get('next_step')}")
+
+        with tab_product:
+            products = product.get("products_mentioned", [])
+            if products:
+                st.write("**Produtos mencionados:**")
+                for p in products:
+                    st.markdown(f"- {p}")
+            else:
+                st.write("Nenhum produto identificado.")
+
+            st.metric("Nível de Interesse", product.get("interest_level", "N/A"))
+
+            trends = product.get("trends", [])
+            if trends:
+                st.write("**Tendências:**")
+                for t in trends:
+                    st.markdown(f"- {t}")
+
+        with tab_qa:
+            adherence = qa.get("script_adherence")
+            st.metric("Aderência ao Script", "✅ Sim" if adherence else "❌ Não")
+
+            questions = qa.get("key_questions_asked", [])
+            if questions:
+                st.write("**Perguntas-chave feitas:**")
+                for q in questions:
+                    st.markdown(f"- {q}")
+
+            improvements = qa.get("improvement_areas", [])
+            if improvements:
+                st.write("**Áreas de melhoria:**")
+                for i in improvements:
+                    st.markdown(f"- {i}")
+
+    if st.button("🗑️ Limpar Resultados"):
         del st.session_state["test_results"]
         st.rerun()

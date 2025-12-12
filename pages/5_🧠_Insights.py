@@ -395,8 +395,12 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
         outcomes = {"convertido": 0, "perdido": 0, "em andamento": 0}
 
         for r in results:
-            # CX - formato local ou BigQuery
-            cx = r.get("cx", {})
+            # Suporta formato aninhado { analysis: { cx, sales } } ou direto { cx, sales }
+            analysis = r.get("analysis", r)
+            cx = analysis.get("cx", r.get("cx", {}))
+            sales = analysis.get("sales", r.get("sales", {}))
+
+            # CX
             s = cx.get("sentiment") or r.get("cx_sentiment", "neutro")
             if s and s.lower() in sentiments:
                 sentiments[s.lower()] += 1
@@ -410,7 +414,6 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
                 humanization_scores.append(float(hum))
 
             # Sales
-            sales = r.get("sales", {})
             o = sales.get("outcome") or r.get("sales_outcome", "em andamento")
             if o and o.lower() in outcomes:
                 outcomes[o.lower()] += 1
@@ -449,7 +452,8 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
 
     # Seletor de chat
     chat_options = {
-        f"{r.get('chat_id', 'N/A')} - {r.get('agent_name', 'N/A')}": idx for idx, r in enumerate(test_results)
+        f"{r.get('chat_id', 'N/A')} - {r.get('agent') or r.get('agent_name', 'N/A')}": idx
+        for idx, r in enumerate(test_results)
     }
 
     selected_chat_label = st.selectbox("Selecione um chat para visualizar:", options=list(chat_options.keys()))
@@ -514,10 +518,12 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
         # Tabs para cada tipo de análise
         tab_cx, tab_sales, tab_product, tab_qa = st.tabs(["😊 CX", "📈 Vendas", "📦 Produto", "✅ QA"])
 
-        cx = selected_result.get("cx", {})
-        sales = selected_result.get("sales", {})
-        product = selected_result.get("product", {})
-        qa = selected_result.get("qa", {})
+        # Suporta formato aninhado { analysis: {...} } ou direto { cx, sales... }
+        analysis = selected_result.get("analysis", selected_result)
+        cx = analysis.get("cx", {})
+        sales = analysis.get("sales", {})
+        product = analysis.get("product", {})
+        qa = analysis.get("qa", {})
 
         with tab_cx:
             st.metric("Sentimento", cx.get("sentiment", "N/A"))

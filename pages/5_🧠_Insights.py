@@ -178,7 +178,7 @@ if weeks:
                 hole=0.4,
             )
             fig_sentiment = apply_chart_theme(fig_sentiment)
-            st.plotly_chart(fig_sentiment, width="stretch")
+            st.plotly_chart(fig_sentiment, key="sentiment_distribution_1")
 
         # Funil de Vendas
         with col_right:
@@ -203,7 +203,7 @@ if weeks:
             )
             fig_outcome = apply_chart_theme(fig_outcome)
             fig_outcome.update_layout(showlegend=False)
-            st.plotly_chart(fig_outcome, width="stretch")
+            st.plotly_chart(fig_outcome, key="outcome_distribution_1")
 
         # Top Produtos
         if aggregated["product"]["top_products"]:
@@ -225,7 +225,7 @@ if weeks:
             )
             fig_products = apply_chart_theme(fig_products)
             fig_products.update_layout(showlegend=False, coloraxis_showscale=False)
-            st.plotly_chart(fig_products, width="stretch")
+            st.plotly_chart(fig_products, key="products_mentioned")
 
         # Detalhes
         st.markdown("---")
@@ -471,7 +471,7 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
             # Labels visíveis com valor e porcentagem
             fig_sentiment.update_traces(textinfo="value+percent", textposition="outside")
             fig_sentiment = apply_chart_theme(fig_sentiment)
-            st.plotly_chart(fig_sentiment, width="stretch")
+            st.plotly_chart(fig_sentiment, key="sentiment_distribution_2")
 
         with col_right:
             st.markdown("**📈 Resultados de Vendas**")
@@ -494,7 +494,7 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
             fig_outcome = apply_chart_theme(fig_outcome)
             fig_outcome.update_traces(textposition="outside")
             fig_outcome.update_layout(showlegend=False)
-            st.plotly_chart(fig_outcome, width="stretch")
+            st.plotly_chart(fig_outcome, key="outcome_distribution_2")
 
     st.markdown("---")
 

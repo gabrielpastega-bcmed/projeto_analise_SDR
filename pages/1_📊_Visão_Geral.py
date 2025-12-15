@@ -121,7 +121,7 @@ with col_left:
         fig_qual.update_traces(textposition="outside")
         fig_qual = apply_chart_theme(fig_qual)
         fig_qual.update_layout(showlegend=False)
-        st.plotly_chart(fig_qual, width="stretch")
+        st.plotly_chart(fig_qual, key="distribuicao_qualificacao")
 
 
 # Volume por Origem
@@ -235,7 +235,7 @@ try:
             fillcolor="rgba(0,0,0,0)",
         )
 
-        st.plotly_chart(fig_heatmap, width="stretch")
+        st.plotly_chart(fig_heatmap, key="heatmap_mensagens")
     else:
         st.info("📊 Dados insuficientes para gerar o heatmap.")
 except Exception as e:
@@ -280,4 +280,4 @@ if all_tags:
         coloraxis_showscale=False,
         yaxis=dict(categoryorder="total ascending"),
     )
-    st.plotly_chart(fig_tags, width="stretch")
+    st.plotly_chart(fig_tags, key="tags_frequentes")

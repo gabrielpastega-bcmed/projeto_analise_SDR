@@ -103,7 +103,7 @@ fig_hours.update_layout(
     yaxis_title="Quantidade de Contatos",
     legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
 )
-st.plotly_chart(fig_hours, width="stretch")
+st.plotly_chart(fig_hours, key="volume_por_hora")
 
 # Insight
 peak_hour = max(hour_counts.items(), key=lambda x: x[1])
@@ -165,7 +165,7 @@ if not df_tme_hour_filtered.empty:
         annotation_position="top left",
     )
 
-    st.plotly_chart(fig_tme_hour, width="stretch")
+    st.plotly_chart(fig_tme_hour, key="tme_por_hora")
 else:
     st.info("Sem dados de TME por hora.")
 
@@ -233,7 +233,7 @@ fig_comparison = px.bar(
 fig_comparison = apply_chart_theme(fig_comparison)
 fig_comparison.update_traces(textposition="outside")
 fig_comparison.update_layout(showlegend=False)
-st.plotly_chart(fig_comparison, width="stretch")
+st.plotly_chart(fig_comparison, key="comparacao_tme")
 
 st.info("""
 📌 **Nota sobre TME fora do expediente:**
@@ -273,6 +273,6 @@ if date_counts:
         xaxis_title="Data",
         yaxis_title="Número de Contatos",
     )
-    st.plotly_chart(fig_trend, width="stretch")
+    st.plotly_chart(fig_trend, key="tendencia_diaria")
 else:
     st.info("Sem dados de tendência temporal.")

@@ -89,7 +89,7 @@ fig_hours = apply_chart_theme(fig_hours)
 # Adicionar destaque de horário comercial (08:00-18:00)
 fig_hours.add_vrect(
     x0="08h",
-    x1="17h",
+    x1="18h",
     fillcolor=COLORS["success"],
     opacity=0.1,
     annotation_text="Horário Comercial",
@@ -155,10 +155,10 @@ if not df_tme_hour_filtered.empty:
         yaxis_title="TME Médio (minutos)",
     )
 
-    # Adicionar área de horário comercial
+    # Adicionar área de horário comercial (08:00-18:00)
     fig_tme_hour.add_vrect(
         x0=f"{BUSINESS_HOURS['start']:02d}h",
-        x1=f"{BUSINESS_HOURS['end'] - 1:02d}h",
+        x1=f"{BUSINESS_HOURS['end']:02d}h",
         fillcolor=COLORS["success"],
         opacity=0.1,
         annotation_text="Horário Comercial",

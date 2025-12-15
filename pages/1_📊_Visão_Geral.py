@@ -92,6 +92,8 @@ with col_left:
         import pandas as pd
 
         qual_df = pd.DataFrame(qual_df_data)
+        # Ordenar por quantidade (maior para menor)
+        qual_df = qual_df.sort_values("Quantidade", ascending=False)
         fig_qual = px.pie(
             qual_df,
             values="Quantidade",
@@ -99,6 +101,8 @@ with col_left:
             color_discrete_sequence=[COLORS["success"], COLORS["danger"], COLORS["warning"], COLORS["info"]],
             hole=0.4,
         )
+        # Adicionar labels visíveis com valor e porcentagem
+        fig_qual.update_traces(textinfo="value+percent", textposition="outside")
         fig_qual = apply_chart_theme(fig_qual)
         st.plotly_chart(fig_qual, width="stretch")
 
@@ -126,9 +130,16 @@ with col_right:
             orientation="h",
             color="Quantidade",
             color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
+            text="Quantidade",  # Labels visíveis
         )
         fig_origin = apply_chart_theme(fig_origin)
-        fig_origin.update_layout(showlegend=False, coloraxis_showscale=False)
+        fig_origin.update_traces(textposition="outside")
+        # Ordenar Y do maior para menor (reverter ordem padrão)
+        fig_origin.update_layout(
+            showlegend=False,
+            coloraxis_showscale=False,
+            yaxis=dict(categoryorder="total ascending"),
+        )
         st.plotly_chart(fig_origin, width="stretch")
 
 
@@ -237,7 +248,14 @@ if all_tags:
         orientation="h",
         color="Quantidade",
         color_continuous_scale=[[0, COLORS["secondary"]], [1, COLORS["primary"]]],
+        text="Quantidade",  # Labels visíveis
     )
     fig_tags = apply_chart_theme(fig_tags)
-    fig_tags.update_layout(showlegend=False, coloraxis_showscale=False)
+    fig_tags.update_traces(textposition="outside")
+    # Ordenar do maior para menor
+    fig_tags.update_layout(
+        showlegend=False,
+        coloraxis_showscale=False,
+        yaxis=dict(categoryorder="total ascending"),
+    )
     st.plotly_chart(fig_tags, width="stretch")

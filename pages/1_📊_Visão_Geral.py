@@ -8,6 +8,8 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from src.dashboard_utils import (
+    TAGS_CONVERTIDO,
+    TAGS_NAO_CONVERTIDO,
     apply_chart_theme,
     apply_custom_css,
     apply_filters,
@@ -213,7 +215,12 @@ try:
                 z=matrix,
                 x=[f"{h:02d}h" for h in hours],
                 y=days,
-                colorscale="Viridis",
+                colorscale=[
+                    [0, COLORS["chart_bg"]],
+                    [0.2, COLORS["info"]],
+                    [0.5, COLORS["warning"]],
+                    [1, COLORS["danger"]],
+                ],
                 hoverongaps=False,
                 hovertemplate="Dia: %{y}<br>Hora: %{x}<br>Mensagens: %{z}<extra></extra>",
             )
@@ -262,22 +269,34 @@ if all_tags:
 
     import pandas as pd
 
-    tag_df = pd.DataFrame(sorted_tags, columns=["Tag", "Quantidade"])
+    # Criar DataFrame com categoria de cor
+    tag_data = []
+    for tag, count in sorted_tags:
+        if tag in TAGS_CONVERTIDO:
+            category = "Qualificado"
+        elif tag in TAGS_NAO_CONVERTIDO:
+            category = "Não Qualificado"
+        else:
+            category = "Outros"
+        tag_data.append({"Tag": tag, "Quantidade": count, "Categoria": category})
+
+    tag_df = pd.DataFrame(tag_data)
     fig_tags = px.bar(
         tag_df,
         x="Quantidade",
         y="Tag",
         orientation="h",
-        color="Quantidade",
-        color_continuous_scale=[[0, COLORS["secondary"]], [1, COLORS["primary"]]],
-        text="Quantidade",  # Labels visíveis
+        color="Categoria",
+        color_discrete_map={
+            "Qualificado": COLORS["success"],
+            "Não Qualificado": COLORS["danger"],
+            "Outros": COLORS["secondary"],
+        },
+        text="Quantidade",
     )
     fig_tags = apply_chart_theme(fig_tags)
     fig_tags.update_traces(textposition="outside")
-    # Ordenar do maior para menor
     fig_tags.update_layout(
-        showlegend=False,
-        coloraxis_showscale=False,
         yaxis=dict(categoryorder="total ascending"),
     )
     st.plotly_chart(fig_tags, key="tags_frequentes")

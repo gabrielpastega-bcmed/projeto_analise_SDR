@@ -107,7 +107,7 @@ with col_left:
 
         qual_df = pd.DataFrame(qual_df_data)
         # Ordenar por quantidade (maior para menor)
-        qual_df = qual_df.sort_values("Quantidade", ascending=True)
+        qual_df = qual_df.sort_values("Quantidade", ascending=False)
 
         fig_qual = px.bar(
             qual_df,

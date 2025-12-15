@@ -155,7 +155,7 @@ with col_right:
         fig_origin.update_layout(
             showlegend=False,
             coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),
+            yaxis=dict(categoryorder="total descending"),
         )
         st.plotly_chart(fig_origin, width="stretch")
     else:
@@ -275,6 +275,6 @@ if all_tags:
     fig_tags.update_layout(
         showlegend=False,
         coloraxis_showscale=False,
-        yaxis=dict(categoryorder="total ascending"),
+        yaxis=dict(categoryorder="total descending"),
     )
     st.plotly_chart(fig_tags, width="stretch")

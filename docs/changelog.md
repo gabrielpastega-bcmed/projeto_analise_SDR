@@ -7,6 +7,35 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.6.0] - 2025-12-15
+
+### Adicionado
+- **Filtros Globais** na sidebar:
+  - Período (datas de início e fim)
+  - Agentes
+  - Origem do Lead
+  - Tags de Qualificação
+  - Checkbox "Apenas Horário Comercial"
+- Função `apply_filters()` centralizada para aplicar filtros em todas as páginas
+- Destaque de horário comercial (08h-18h) em gráficos temporais
+- Timestamps visíveis na transcrição de chat com diferença de tempo entre mensagens
+- Keys únicos em todos os 18 `plotly_chart` para evitar erro de IDs duplicados
+
+### Alterado
+- Gráfico "Distribuição de Qualificação" (P1) convertido para barras horizontais
+- Gráfico "TME vs Volume" (P2) dividido em dois gráficos separados
+- Ordenação de barras horizontais: maior valor sempre no topo
+- `get_lead_origin()` agora trata `null`, `None`, vazio como "Não Informado"
+- Modelo `Organization` com campos `id` e `name` opcionais para dados incompletos
+
+### Corrigido
+- Bug `StreamlitDuplicateElementId` em gráficos Plotly (solucionado com `key=`)
+- Gráficos "Volume por Origem" e "Performance por Origem" não renderizavam
+- Horário comercial incorreto nos gráficos temporais (era 08-17, corrigido para 08-18)
+- Remoção de tags HTML do corpo das mensagens na transcrição
+
+---
+
 ## [0.5.0] - 2025-12-15
 
 ### Adicionado

@@ -137,21 +137,35 @@ with col_right:
     # Ordenar por quantidade (top 10)
     sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
-    # Mostrar dados em tabela simples para debug
-    st.write(f"Total de origens: {len(sorted_origins)}")
-
     if len(sorted_origins) > 0:
+        import altair as alt
         import pandas as pd
 
         # Criar DataFrame
         origin_df = pd.DataFrame(sorted_origins, columns=["Origem", "Quantidade"])
         origin_df = origin_df.sort_values("Quantidade", ascending=False)
 
-        # Mostrar tabela para debug
-        st.dataframe(origin_df, hide_index=True)
+        # Criar gráfico de barras horizontais com Altair
+        chart = (
+            alt.Chart(origin_df)
+            .mark_bar(color=COLORS["primary"])
+            .encode(
+                x=alt.X("Quantidade:Q", title="Quantidade"),
+                y=alt.Y("Origem:N", sort="-x", title="Origem"),
+                tooltip=["Origem", "Quantidade"],
+            )
+            .properties(height=300)
+        )
 
-        # Gráfico de barras nativo do Streamlit para testar
-        st.bar_chart(origin_df.set_index("Origem"))
+        # Adicionar labels de texto
+        text = chart.mark_text(
+            align="left",
+            baseline="middle",
+            dx=3,
+            color="white",
+        ).encode(text="Quantidade:Q")
+
+        st.altair_chart(chart + text, use_container_width=True)
     else:
         st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 

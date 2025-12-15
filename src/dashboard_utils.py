@@ -216,10 +216,14 @@ def get_lead_origin(chat) -> str:
         if hasattr(chat, "contact") and chat.contact:
             custom_fields = getattr(chat.contact, "customFields", None)
             if custom_fields and isinstance(custom_fields, dict):
-                return custom_fields.get("origem_do_negocio", "Não informado")
+                origin = custom_fields.get("origem_do_negocio", None)
+                # Tratar null, None, vazio, 'null', 'None' como 'Não Informado'
+                if origin is None or origin == "" or origin == "null" or origin == "None":
+                    return "Não Informado"
+                return origin
     except Exception:
         pass
-    return "Não informado"
+    return "Não Informado"
 
 
 # ================================================================

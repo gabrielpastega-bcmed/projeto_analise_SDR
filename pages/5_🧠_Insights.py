@@ -178,7 +178,7 @@ if weeks:
                 hole=0.4,
             )
             fig_sentiment = apply_chart_theme(fig_sentiment)
-            st.plotly_chart(fig_sentiment, width="stretch")
+            st.plotly_chart(fig_sentiment, use_container_width=True)
 
         # Funil de Vendas
         with col_right:
@@ -203,7 +203,7 @@ if weeks:
             )
             fig_outcome = apply_chart_theme(fig_outcome)
             fig_outcome.update_layout(showlegend=False)
-            st.plotly_chart(fig_outcome, width="stretch")
+            st.plotly_chart(fig_outcome, use_container_width=True)
 
         # Top Produtos
         if aggregated["product"]["top_products"]:
@@ -225,7 +225,7 @@ if weeks:
             )
             fig_products = apply_chart_theme(fig_products)
             fig_products.update_layout(showlegend=False, coloraxis_showscale=False)
-            st.plotly_chart(fig_products, width="stretch")
+            st.plotly_chart(fig_products, use_container_width=True)
 
         # Detalhes
         st.markdown("---")

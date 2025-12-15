@@ -137,7 +137,7 @@ if origin_metrics:
             coloraxis_showscale=False,
             yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
         )
-        st.plotly_chart(fig_vol, width="stretch")
+        st.plotly_chart(fig_vol, use_container_width=True)
 
     with col_right:
         st.markdown("**Taxa de Qualificação por Origem**")
@@ -157,7 +157,7 @@ if origin_metrics:
             coloraxis_showscale=False,
             yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
         )
-        st.plotly_chart(fig_qual, width="stretch")
+        st.plotly_chart(fig_qual, use_container_width=True)
 else:
     st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
 
@@ -188,7 +188,7 @@ fig_funnel = go.Figure(
     )
 )
 fig_funnel = apply_chart_theme(fig_funnel)
-st.plotly_chart(fig_funnel, width="stretch")
+st.plotly_chart(fig_funnel, use_container_width=True)
 
 
 # ================================================================
@@ -240,7 +240,7 @@ if all_tags:
     fig_tags = apply_chart_theme(fig_tags)
     fig_tags.update_traces(textposition="outside")
     fig_tags.update_layout(yaxis=dict(categoryorder="total ascending"))  # Ordenar maior→menor
-    st.plotly_chart(fig_tags, width="stretch")
+    st.plotly_chart(fig_tags, use_container_width=True)
 
 
 # ================================================================
@@ -255,4 +255,4 @@ if origin_metrics:
     df_display["Taxa Qualificação (%)"] = df_display["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%")
     df_display["TME (min)"] = df_display["TME (min)"].apply(lambda x: f"{x:.1f}")
 
-    st.dataframe(df_display, width="stretch", hide_index=True)
+    st.dataframe(df_display, use_container_width=True, hide_index=True)

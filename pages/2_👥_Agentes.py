@@ -198,10 +198,12 @@ fig_scatter = px.scatter(
     size="Taxa Qualificação (%)",
     color="Taxa Qualificação (%)",
     hover_name="Agente",
+    text="Agente",  # Label com nome do agente
     color_continuous_scale=[[0, COLORS["danger"]], [1, COLORS["success"]]],
     size_max=50,
 )
 fig_scatter = apply_chart_theme(fig_scatter)
+fig_scatter.update_traces(textposition="top center", textfont_size=9)
 fig_scatter.update_layout(
     xaxis_title="Volume de Atendimentos",
     yaxis_title="TME Médio (minutos)",

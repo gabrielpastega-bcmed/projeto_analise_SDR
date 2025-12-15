@@ -121,9 +121,15 @@ if origin_metrics:
             orientation="h",
             color="Total",
             color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
+            text="Total",  # Labels visíveis
         )
         fig_vol = apply_chart_theme(fig_vol)
-        fig_vol.update_layout(showlegend=False, coloraxis_showscale=False)
+        fig_vol.update_traces(textposition="outside")
+        fig_vol.update_layout(
+            showlegend=False,
+            coloraxis_showscale=False,
+            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
+        )
         st.plotly_chart(fig_vol, width="stretch")
 
     with col_right:
@@ -135,9 +141,15 @@ if origin_metrics:
             orientation="h",
             color="Taxa Qualificação (%)",
             color_continuous_scale=[[0, COLORS["danger"]], [0.5, COLORS["warning"]], [1, COLORS["success"]]],
+            text=df_origins.head(10)["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),  # Labels
         )
         fig_qual = apply_chart_theme(fig_qual)
-        fig_qual.update_layout(showlegend=False, coloraxis_showscale=False)
+        fig_qual.update_traces(textposition="outside")
+        fig_qual.update_layout(
+            showlegend=False,
+            coloraxis_showscale=False,
+            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
+        )
         st.plotly_chart(fig_qual, width="stretch")
 else:
     st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
@@ -216,8 +228,11 @@ if all_tags:
             "Não Qualificado": COLORS["danger"],
             "Outros": COLORS["warning"],
         },
+        text="Quantidade",  # Labels visíveis
     )
     fig_tags = apply_chart_theme(fig_tags)
+    fig_tags.update_traces(textposition="outside")
+    fig_tags.update_layout(yaxis=dict(categoryorder="total ascending"))  # Ordenar maior→menor
     st.plotly_chart(fig_tags, width="stretch")
 
 

@@ -454,6 +454,8 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
             df_sentiment = pd.DataFrame(
                 [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
             )
+            # Ordenar por quantidade
+            df_sentiment = df_sentiment.sort_values("Quantidade", ascending=False)
             fig_sentiment = px.pie(
                 df_sentiment,
                 values="Quantidade",
@@ -466,6 +468,8 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
                 },
                 hole=0.4,
             )
+            # Labels visíveis com valor e porcentagem
+            fig_sentiment.update_traces(textinfo="value+percent", textposition="outside")
             fig_sentiment = apply_chart_theme(fig_sentiment)
             st.plotly_chart(fig_sentiment, use_container_width=True)
 
@@ -473,6 +477,8 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
             st.markdown("**📈 Resultados de Vendas**")
             outcome_data = test_aggregated["sales"]["outcome_distribution"]
             df_outcome = pd.DataFrame([{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()])
+            # Ordenar por quantidade (maior → menor)
+            df_outcome = df_outcome.sort_values("Quantidade", ascending=False)
             fig_outcome = px.bar(
                 df_outcome,
                 x="Resultado",
@@ -483,8 +489,10 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
                     "Perdido": COLORS["danger"],
                     "Em andamento": COLORS["info"],
                 },
+                text="Quantidade",  # Labels visíveis
             )
             fig_outcome = apply_chart_theme(fig_outcome)
+            fig_outcome.update_traces(textposition="outside")
             fig_outcome.update_layout(showlegend=False)
             st.plotly_chart(fig_outcome, use_container_width=True)
 

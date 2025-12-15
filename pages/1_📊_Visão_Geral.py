@@ -137,32 +137,21 @@ with col_right:
     # Ordenar por quantidade (top 10)
     sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
-    # Gerar gráfico
-    if len(sorted_origins) > 0:
-        # Preparar dados
-        origens = [o[0] for o in sorted_origins]
-        quantidades = [o[1] for o in sorted_origins]
+    # Mostrar dados em tabela simples para debug
+    st.write(f"Total de origens: {len(sorted_origins)}")
 
-        # Criar gráfico com go.Figure
-        fig_origin = go.Figure()
-        fig_origin.add_trace(
-            go.Bar(
-                x=quantidades,
-                y=origens,
-                orientation="h",
-                text=quantidades,
-                textposition="outside",
-                marker_color=COLORS["primary"],
-            )
-        )
-        fig_origin = apply_chart_theme(fig_origin)
-        fig_origin.update_layout(
-            showlegend=False,
-            xaxis_title="Quantidade",
-            yaxis_title="Origem",
-            yaxis=dict(categoryorder="total ascending"),
-        )
-        st.plotly_chart(fig_origin, key="origin_chart")
+    if len(sorted_origins) > 0:
+        import pandas as pd
+
+        # Criar DataFrame
+        origin_df = pd.DataFrame(sorted_origins, columns=["Origem", "Quantidade"])
+        origin_df = origin_df.sort_values("Quantidade", ascending=False)
+
+        # Mostrar tabela para debug
+        st.dataframe(origin_df, hide_index=True)
+
+        # Gráfico de barras nativo do Streamlit para testar
+        st.bar_chart(origin_df.set_index("Origem"))
     else:
         st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 

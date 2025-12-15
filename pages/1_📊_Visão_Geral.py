@@ -128,14 +128,34 @@ with col_left:
 with col_right:
     st.subheader("📈 Volume por Origem")
 
-    origins = [get_lead_origin(c) for c in chats]
+    # Passo 1: Extrair origens de cada chat
+    origins = []
+    for c in chats:
+        origin = get_lead_origin(c)
+        origins.append(origin)
+
+    # Passo 2: Contar origens
     origin_counts = {}
     for origin in origins:
         origin_counts[origin] = origin_counts.get(origin, 0) + 1
 
-    # Ordenar por quantidade
+    # Passo 3: Ordenar por quantidade (top 10)
     sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
+    # Debug expander
+    with st.expander("🔍 Debug - Volume por Origem"):
+        st.write(f"Total de chats: {len(chats)}")
+        st.write(f"Total de origens extraídas: {len(origins)}")
+        st.write(f"Origens únicas: {len(origin_counts)}")
+        st.write(f"Origin counts: {dict(list(origin_counts.items())[:5])}")
+        st.write(f"Sorted origins (top 5): {sorted_origins[:5]}")
+        if chats:
+            c = chats[0]
+            st.write(f"Primeiro chat - contact: {type(c.contact)}")
+            if c.contact:
+                st.write(f"Primeiro chat - customFields: {c.contact.customFields}")
+
+    # Passo 4: Gerar gráfico
     if sorted_origins:
         import pandas as pd
 
@@ -147,17 +167,16 @@ with col_right:
             orientation="h",
             color="Quantidade",
             color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
-            text="Quantidade",  # Labels visíveis
+            text="Quantidade",
         )
         fig_origin = apply_chart_theme(fig_origin)
         fig_origin.update_traces(textposition="outside")
-        # Ordenar Y do maior para menor (reverter ordem padrão)
         fig_origin.update_layout(
             showlegend=False,
             coloraxis_showscale=False,
             yaxis=dict(categoryorder="total ascending"),
         )
-        st.plotly_chart(fig_origin, width="stretch")
+        st.plotly_chart(fig_origin, use_container_width=True)
     else:
         st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 

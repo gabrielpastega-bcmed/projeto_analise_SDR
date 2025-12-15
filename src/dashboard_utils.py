@@ -249,6 +249,11 @@ def apply_filters(chats: List, filters: Dict) -> List:
     """Aplica filtros globais à lista de chats."""
     filtered = chats
 
+    # Filtro por período (datas)
+    if filters.get("date_range"):
+        start_date, end_date = filters["date_range"]
+        filtered = [c for c in filtered if c.firstMessageDate and start_date <= c.firstMessageDate.date() <= end_date]
+
     # Filtro por agente
     if filters.get("agents"):
         filtered = [c for c in filtered if hasattr(c, "agent") and c.agent and c.agent.name in filters["agents"]]

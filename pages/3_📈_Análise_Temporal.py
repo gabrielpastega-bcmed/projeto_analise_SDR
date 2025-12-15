@@ -12,6 +12,7 @@ from src.dashboard_utils import (
     BUSINESS_HOURS,
     apply_chart_theme,
     apply_custom_css,
+    apply_filters,
     classify_contact_context,
     get_colors,
     is_business_hour,
@@ -33,7 +34,13 @@ if "chats" not in st.session_state or not st.session_state.chats:
     st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
     st.stop()
 
-chats = st.session_state.chats
+# Aplicar filtros globais
+filters = st.session_state.get("filters", {})
+chats = apply_filters(st.session_state.chats, filters)
+
+if not chats:
+    st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
+    st.stop()
 
 
 # ================================================================
@@ -66,8 +73,6 @@ fig_hours.add_trace(
         name="Total",
         marker_color=COLORS["info"],
         opacity=0.6,
-        text=df_hours["Total"],  # Labels visíveis
-        textposition="outside",
     )
 )
 fig_hours.add_trace(
@@ -76,12 +81,22 @@ fig_hours.add_trace(
         y=df_hours["Horário Comercial"],
         name="Horário Comercial",
         marker_color=COLORS["primary"],
-        text=df_hours["Horário Comercial"],  # Labels visíveis
-        textposition="inside",
     )
 )
 
 fig_hours = apply_chart_theme(fig_hours)
+
+# Adicionar destaque de horário comercial (08:00-18:00)
+fig_hours.add_vrect(
+    x0="08h",
+    x1="17h",
+    fillcolor=COLORS["success"],
+    opacity=0.1,
+    annotation_text="Horário Comercial",
+    annotation_position="top left",
+    line_width=0,
+)
+
 fig_hours.update_layout(
     barmode="overlay",
     xaxis_title="Hora do Dia",

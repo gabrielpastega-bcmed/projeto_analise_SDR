@@ -114,51 +114,53 @@ for origin, data in origin_data.items():
         )
 
 if origin_metrics:
-    import altair as alt
-
     df_origins = pd.DataFrame(origin_metrics)
-    df_origins = df_origins.sort_values("Total", ascending=False)
+    df_origins = df_origins.sort_values("Total", ascending=True)  # Ascending para maior ficar em cima
 
     col_left, col_right = st.columns(2)
 
     with col_left:
         st.markdown("**Volume por Origem**")
-        # Gráfico de barras horizontais com Altair
-        chart_vol = (
-            alt.Chart(df_origins.head(10))
-            .mark_bar(color=COLORS["primary"])
-            .encode(
-                x=alt.X("Total:Q", title="Total de Leads"),
-                y=alt.Y("Origem:N", sort="-x", title="Origem"),
-                tooltip=["Origem", "Total"],
-            )
-            .properties(height=300)
+        # Gráfico de barras horizontais com Plotly
+        fig_vol = px.bar(
+            df_origins.head(10),
+            x="Total",
+            y="Origem",
+            orientation="h",
+            text="Total",
+            color_discrete_sequence=[COLORS["primary"]],
         )
-        text_vol = chart_vol.mark_text(align="left", baseline="middle", dx=3, color="white").encode(text="Total:Q")
-        st.altair_chart(chart_vol + text_vol, use_container_width=True)
+        fig_vol.update_traces(textposition="outside")
+        fig_vol = apply_chart_theme(fig_vol)
+        fig_vol.update_layout(
+            showlegend=False,
+            xaxis_title="Total de Leads",
+            yaxis_title="",
+        )
+        st.plotly_chart(fig_vol, key="leads_volume_por_origem")
 
     with col_right:
         st.markdown("**Taxa de Qualificação por Origem**")
-        # Gráfico de barras horizontais com gradiente de cor
-        chart_qual = (
-            alt.Chart(df_origins.head(10))
-            .mark_bar()
-            .encode(
-                x=alt.X("Taxa Qualificação (%):Q", title="Taxa de Qualificação (%)"),
-                y=alt.Y("Origem:N", sort="-x", title="Origem"),
-                color=alt.Color(
-                    "Taxa Qualificação (%):Q",
-                    scale=alt.Scale(scheme="redyellowgreen"),
-                    legend=None,
-                ),
-                tooltip=["Origem", "Taxa Qualificação (%)"],
-            )
-            .properties(height=300)
+        # Gráfico de barras horizontais com gradiente
+        df_qual_sorted = df_origins.head(10).sort_values("Taxa Qualificação (%)", ascending=True)
+        fig_qual = px.bar(
+            df_qual_sorted,
+            x="Taxa Qualificação (%)",
+            y="Origem",
+            orientation="h",
+            text=df_qual_sorted["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),
+            color="Taxa Qualificação (%)",
+            color_continuous_scale=[[0, COLORS["danger"]], [0.5, COLORS["warning"]], [1, COLORS["success"]]],
         )
-        text_qual = chart_qual.mark_text(align="left", baseline="middle", dx=3, color="white").encode(
-            text=alt.Text("Taxa Qualificação (%):Q", format=".1f")
+        fig_qual.update_traces(textposition="outside")
+        fig_qual = apply_chart_theme(fig_qual)
+        fig_qual.update_layout(
+            showlegend=False,
+            coloraxis_showscale=False,
+            xaxis_title="Taxa de Qualificação (%)",
+            yaxis_title="",
         )
-        st.altair_chart(chart_qual + text_qual, use_container_width=True)
+        st.plotly_chart(fig_qual, key="leads_taxa_qualificacao_origem")
 else:
     st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
 

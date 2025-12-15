@@ -138,34 +138,29 @@ with col_right:
     sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
     if len(sorted_origins) > 0:
-        import altair as alt
         import pandas as pd
 
         # Criar DataFrame
         origin_df = pd.DataFrame(sorted_origins, columns=["Origem", "Quantidade"])
-        origin_df = origin_df.sort_values("Quantidade", ascending=False)
+        origin_df = origin_df.sort_values("Quantidade", ascending=True)  # Ascending para maior ficar em cima
 
-        # Criar gráfico de barras horizontais com Altair
-        chart = (
-            alt.Chart(origin_df)
-            .mark_bar(color=COLORS["primary"])
-            .encode(
-                x=alt.X("Quantidade:Q", title="Quantidade"),
-                y=alt.Y("Origem:N", sort="-x", title="Origem"),
-                tooltip=["Origem", "Quantidade"],
-            )
-            .properties(height=300)
+        # Gráfico de barras horizontais com Plotly
+        fig_origin = px.bar(
+            origin_df,
+            x="Quantidade",
+            y="Origem",
+            orientation="h",
+            text="Quantidade",
+            color_discrete_sequence=[COLORS["primary"]],
         )
-
-        # Adicionar labels de texto
-        text = chart.mark_text(
-            align="left",
-            baseline="middle",
-            dx=3,
-            color="white",
-        ).encode(text="Quantidade:Q")
-
-        st.altair_chart(chart + text, use_container_width=True)
+        fig_origin.update_traces(textposition="outside")
+        fig_origin = apply_chart_theme(fig_origin)
+        fig_origin.update_layout(
+            showlegend=False,
+            xaxis_title="Quantidade",
+            yaxis_title="",
+        )
+        st.plotly_chart(fig_origin, key="volume_por_origem_chart")
     else:
         st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 

@@ -191,7 +191,7 @@ fig_funnel = go.Figure(
     )
 )
 fig_funnel = apply_chart_theme(fig_funnel)
-st.plotly_chart(fig_funnel, width="stretch")
+st.plotly_chart(fig_funnel, key="funil_qualificacao")
 
 
 # ================================================================
@@ -243,7 +243,7 @@ if all_tags:
     fig_tags = apply_chart_theme(fig_tags)
     fig_tags.update_traces(textposition="outside")
     fig_tags.update_layout(yaxis=dict(categoryorder="total ascending"))  # Ordenar maior→menor
-    st.plotly_chart(fig_tags, width="stretch")
+    st.plotly_chart(fig_tags, key="distribuicao_tags")
 
 
 # ================================================================

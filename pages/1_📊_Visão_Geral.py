@@ -159,13 +159,7 @@ with col_right:
         )
         st.plotly_chart(fig_origin, width="stretch")
     else:
-        st.info("📊 Sem dados de origem disponíveis.")
-        # Debug: mostrar o que está sendo encontrado
-        st.caption(f"Debug: origin_counts = {dict(list(origin_counts.items())[:5])}")
-        sample_chats = chats[:3]
-        for i, c in enumerate(sample_chats):
-            cf = getattr(c.contact, "customFields", None) if c.contact else None
-            st.caption(f"Debug #{i + 1}: customFields = {cf}")
+        st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 
 
 # ================================================================

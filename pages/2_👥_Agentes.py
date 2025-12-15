@@ -186,7 +186,7 @@ with col_right:
         text=df_sorted_qual["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),
     )
     fig_qual = apply_chart_theme(fig_qual)
-    fig_qual.update_layout(showlegend=False, coloraxis_showscale=False)
+    fig_qual.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     fig_qual.update_traces(textposition="outside")
     st.plotly_chart(fig_qual, width="stretch")
 

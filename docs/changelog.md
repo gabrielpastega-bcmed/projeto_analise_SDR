@@ -7,6 +7,26 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.5.0] - 2025-12-15
+
+### Adicionado
+- **Visualização de Chat vs Análise** lado-a-lado na página Insights
+- Botão para carregar análises locais sem BigQuery
+- Nome do remetente visível na transcrição do chat (Bot, Agente, Cliente)
+- Labels com valores numéricos visíveis em todos os gráficos (sem hover)
+
+### Alterado
+- Modelo Gemini atualizado para `gemini-2.5-flash` (estável)
+- Gráficos ordenados do maior para menor
+- Pie charts mostram valor + porcentagem
+- Implementadas boas práticas do Chart Guide
+
+### Corrigido
+- Erro `is_bot` ao carregar chat do BigQuery
+- Compatibilidade com estrutura JSON aninhada (`analysis.cx`)
+
+---
+
 ## [0.4.0] - 2025-12-12
 
 ### Adicionado

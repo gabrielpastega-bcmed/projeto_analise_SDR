@@ -168,7 +168,7 @@ with col_left:
     fig_tme = apply_chart_theme(fig_tme)
     fig_tme.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     fig_tme.update_traces(textposition="outside")
-    st.plotly_chart(fig_tme, width="stretch")
+    st.plotly_chart(fig_tme, use_container_width=True)
 
 
 with col_right:
@@ -188,7 +188,7 @@ with col_right:
     fig_qual = apply_chart_theme(fig_qual)
     fig_qual.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     fig_qual.update_traces(textposition="outside")
-    st.plotly_chart(fig_qual, width="stretch")
+    st.plotly_chart(fig_qual, use_container_width=True)
 
 
 # ================================================================
@@ -249,6 +249,6 @@ df_display = df_display.drop(columns=["TME (s)"])
 
 st.dataframe(
     df_display.sort_values("Atendimentos", ascending=False),
-    width="stretch",
+    use_container_width=True,
     hide_index=True,
 )

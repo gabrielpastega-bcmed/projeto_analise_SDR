@@ -121,42 +121,24 @@ with col_left:
         fig_qual.update_traces(textposition="outside")
         fig_qual = apply_chart_theme(fig_qual)
         fig_qual.update_layout(showlegend=False)
-        st.plotly_chart(fig_qual, width="stretch")
+        st.plotly_chart(fig_qual, use_container_width=True)
 
 
 # Volume por Origem
 with col_right:
     st.subheader("📈 Volume por Origem")
 
-    # Passo 1: Extrair origens de cada chat
-    origins = []
-    for c in chats:
-        origin = get_lead_origin(c)
-        origins.append(origin)
-
-    # Passo 2: Contar origens
+    # Extrair origens de cada chat
+    origins = [get_lead_origin(c) for c in chats]
     origin_counts = {}
     for origin in origins:
         origin_counts[origin] = origin_counts.get(origin, 0) + 1
 
-    # Passo 3: Ordenar por quantidade (top 10)
+    # Ordenar por quantidade (top 10)
     sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
-    # Debug expander
-    with st.expander("🔍 Debug - Volume por Origem"):
-        st.write(f"Total de chats: {len(chats)}")
-        st.write(f"Total de origens extraídas: {len(origins)}")
-        st.write(f"Origens únicas: {len(origin_counts)}")
-        st.write(f"Origin counts: {dict(list(origin_counts.items())[:5])}")
-        st.write(f"Sorted origins (top 5): {sorted_origins[:5]}")
-        if chats:
-            c = chats[0]
-            st.write(f"Primeiro chat - contact: {type(c.contact)}")
-            if c.contact:
-                st.write(f"Primeiro chat - customFields: {c.contact.customFields}")
-
-    # Passo 4: Gerar gráfico
-    if sorted_origins:
+    # Gerar gráfico
+    if len(sorted_origins) > 0:
         import pandas as pd
 
         origin_df = pd.DataFrame(sorted_origins, columns=["Origem", "Quantidade"])
@@ -165,15 +147,12 @@ with col_right:
             x="Quantidade",
             y="Origem",
             orientation="h",
-            color="Quantidade",
-            color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
             text="Quantidade",
         )
+        fig_origin.update_traces(textposition="outside", marker_color=COLORS["primary"])
         fig_origin = apply_chart_theme(fig_origin)
-        fig_origin.update_traces(textposition="outside")
         fig_origin.update_layout(
             showlegend=False,
-            coloraxis_showscale=False,
             yaxis=dict(categoryorder="total ascending"),
         )
         st.plotly_chart(fig_origin, use_container_width=True)
@@ -251,7 +230,7 @@ try:
             fillcolor="rgba(0,0,0,0)",
         )
 
-        st.plotly_chart(fig_heatmap, width="stretch")
+        st.plotly_chart(fig_heatmap, use_container_width=True)
     else:
         st.info("📊 Dados insuficientes para gerar o heatmap.")
 except Exception as e:
@@ -296,4 +275,4 @@ if all_tags:
         coloraxis_showscale=False,
         yaxis=dict(categoryorder="total ascending"),
     )
-    st.plotly_chart(fig_tags, width="stretch")
+    st.plotly_chart(fig_tags, use_container_width=True)

@@ -121,43 +121,17 @@ if origin_metrics:
 
     with col_left:
         st.markdown("**Volume por Origem**")
-        fig_vol = px.bar(
-            df_origins.head(10),
-            x="Total",
-            y="Origem",
-            orientation="h",
-            color="Total",
-            color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
-            text="Total",  # Labels visíveis
-        )
-        fig_vol = apply_chart_theme(fig_vol)
-        fig_vol.update_traces(textposition="outside")
-        fig_vol.update_layout(
-            showlegend=False,
-            coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
-        )
-        st.plotly_chart(fig_vol, width="stretch")
+        # Usar st.bar_chart nativo (funciona)
+        df_vol = df_origins.head(10)[["Origem", "Total"]].set_index("Origem")
+        st.dataframe(df_origins.head(10)[["Origem", "Total"]], hide_index=True)
+        st.bar_chart(df_vol)
 
     with col_right:
         st.markdown("**Taxa de Qualificação por Origem**")
-        fig_qual = px.bar(
-            df_origins.head(10),
-            x="Taxa Qualificação (%)",
-            y="Origem",
-            orientation="h",
-            color="Taxa Qualificação (%)",
-            color_continuous_scale=[[0, COLORS["danger"]], [0.5, COLORS["warning"]], [1, COLORS["success"]]],
-            text=df_origins.head(10)["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),  # Labels
-        )
-        fig_qual = apply_chart_theme(fig_qual)
-        fig_qual.update_traces(textposition="outside")
-        fig_qual.update_layout(
-            showlegend=False,
-            coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
-        )
-        st.plotly_chart(fig_qual, width="stretch")
+        # Usar st.bar_chart nativo (funciona)
+        df_qual = df_origins.head(10)[["Origem", "Taxa Qualificação (%)"]].set_index("Origem")
+        st.dataframe(df_origins.head(10)[["Origem", "Taxa Qualificação (%)"]], hide_index=True)
+        st.bar_chart(df_qual)
 else:
     st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
 

@@ -116,6 +116,7 @@ if st.session_state.data_loaded and st.session_state.chats:
 
     # Filtro por período (datas)
     dates = [c.firstMessageDate for c in chats if c.firstMessageDate]
+    date_range: tuple | None = None  # Inicializar antes do if
     if dates:
         min_date = min(dates).date()
         max_date = max(dates).date()
@@ -126,8 +127,6 @@ if st.session_state.data_loaded and st.session_state.chats:
             max_value=max_date,
             help="Filtrar por período de atendimento",
         )
-    else:
-        date_range = None
 
     # Filtro por agente
     agents = list(set(c.agent.name for c in chats if c.agent and c.agent.name))

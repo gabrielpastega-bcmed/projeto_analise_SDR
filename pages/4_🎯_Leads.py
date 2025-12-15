@@ -114,6 +114,8 @@ for origin, data in origin_data.items():
         )
 
 if origin_metrics:
+    import altair as alt
+
     df_origins = pd.DataFrame(origin_metrics)
     df_origins = df_origins.sort_values("Total", ascending=False)
 
@@ -121,17 +123,42 @@ if origin_metrics:
 
     with col_left:
         st.markdown("**Volume por Origem**")
-        # Usar st.bar_chart nativo (funciona)
-        df_vol = df_origins.head(10)[["Origem", "Total"]].set_index("Origem")
-        st.dataframe(df_origins.head(10)[["Origem", "Total"]], hide_index=True)
-        st.bar_chart(df_vol)
+        # Gráfico de barras horizontais com Altair
+        chart_vol = (
+            alt.Chart(df_origins.head(10))
+            .mark_bar(color=COLORS["primary"])
+            .encode(
+                x=alt.X("Total:Q", title="Total de Leads"),
+                y=alt.Y("Origem:N", sort="-x", title="Origem"),
+                tooltip=["Origem", "Total"],
+            )
+            .properties(height=300)
+        )
+        text_vol = chart_vol.mark_text(align="left", baseline="middle", dx=3, color="white").encode(text="Total:Q")
+        st.altair_chart(chart_vol + text_vol, use_container_width=True)
 
     with col_right:
         st.markdown("**Taxa de Qualificação por Origem**")
-        # Usar st.bar_chart nativo (funciona)
-        df_qual = df_origins.head(10)[["Origem", "Taxa Qualificação (%)"]].set_index("Origem")
-        st.dataframe(df_origins.head(10)[["Origem", "Taxa Qualificação (%)"]], hide_index=True)
-        st.bar_chart(df_qual)
+        # Gráfico de barras horizontais com gradiente de cor
+        chart_qual = (
+            alt.Chart(df_origins.head(10))
+            .mark_bar()
+            .encode(
+                x=alt.X("Taxa Qualificação (%):Q", title="Taxa de Qualificação (%)"),
+                y=alt.Y("Origem:N", sort="-x", title="Origem"),
+                color=alt.Color(
+                    "Taxa Qualificação (%):Q",
+                    scale=alt.Scale(scheme="redyellowgreen"),
+                    legend=None,
+                ),
+                tooltip=["Origem", "Taxa Qualificação (%)"],
+            )
+            .properties(height=300)
+        )
+        text_qual = chart_qual.mark_text(align="left", baseline="middle", dx=3, color="white").encode(
+            text=alt.Text("Taxa Qualificação (%):Q", format=".1f")
+        )
+        st.altair_chart(chart_qual + text_qual, use_container_width=True)
 else:
     st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
 

@@ -168,7 +168,7 @@ with col_left:
     fig_tme = apply_chart_theme(fig_tme)
     fig_tme.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     fig_tme.update_traces(textposition="outside")
-    st.plotly_chart(fig_tme, use_container_width=True)
+    st.plotly_chart(fig_tme, width="stretch")
 
 
 with col_right:
@@ -188,7 +188,7 @@ with col_right:
     fig_qual = apply_chart_theme(fig_qual)
     fig_qual.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     fig_qual.update_traces(textposition="outside")
-    st.plotly_chart(fig_qual, use_container_width=True)
+    st.plotly_chart(fig_qual, width="stretch")
 
 
 # ================================================================
@@ -215,7 +215,7 @@ with col_vol:
     fig_vol = apply_chart_theme(fig_vol)
     fig_vol.update_traces(textposition="outside")
     fig_vol.update_layout(showlegend=False, coloraxis_showscale=False)
-    st.plotly_chart(fig_vol, use_container_width=True)
+    st.plotly_chart(fig_vol, width="stretch")
 
 with col_tme:
     st.markdown("**⏱️ TME Médio (minutos)**")
@@ -232,7 +232,7 @@ with col_tme:
     fig_tme_agents = apply_chart_theme(fig_tme_agents)
     fig_tme_agents.update_traces(textposition="outside")
     fig_tme_agents.update_layout(showlegend=False, coloraxis_showscale=False)
-    st.plotly_chart(fig_tme_agents, use_container_width=True)
+    st.plotly_chart(fig_tme_agents, width="stretch")
 
 
 # ================================================================
@@ -249,6 +249,6 @@ df_display = df_display.drop(columns=["TME (s)"])
 
 st.dataframe(
     df_display.sort_values("Atendimentos", ascending=False),
-    use_container_width=True,
+    width="stretch",
     hide_index=True,
 )

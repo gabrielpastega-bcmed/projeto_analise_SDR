@@ -121,7 +121,7 @@ with col_left:
         fig_qual.update_traces(textposition="outside")
         fig_qual = apply_chart_theme(fig_qual)
         fig_qual.update_layout(showlegend=False)
-        st.plotly_chart(fig_qual, use_container_width=True)
+        st.plotly_chart(fig_qual, width="stretch")
 
 
 # Volume por Origem
@@ -139,23 +139,30 @@ with col_right:
 
     # Gerar gráfico
     if len(sorted_origins) > 0:
-        import pandas as pd
+        # Preparar dados
+        origens = [o[0] for o in sorted_origins]
+        quantidades = [o[1] for o in sorted_origins]
 
-        origin_df = pd.DataFrame(sorted_origins, columns=["Origem", "Quantidade"])
-        fig_origin = px.bar(
-            origin_df,
-            x="Quantidade",
-            y="Origem",
-            orientation="h",
-            text="Quantidade",
+        # Criar gráfico com go.Figure
+        fig_origin = go.Figure()
+        fig_origin.add_trace(
+            go.Bar(
+                x=quantidades,
+                y=origens,
+                orientation="h",
+                text=quantidades,
+                textposition="outside",
+                marker_color=COLORS["primary"],
+            )
         )
-        fig_origin.update_traces(textposition="outside", marker_color=COLORS["primary"])
         fig_origin = apply_chart_theme(fig_origin)
         fig_origin.update_layout(
             showlegend=False,
+            xaxis_title="Quantidade",
+            yaxis_title="Origem",
             yaxis=dict(categoryorder="total ascending"),
         )
-        st.plotly_chart(fig_origin, use_container_width=True)
+        st.plotly_chart(fig_origin, key="origin_chart")
     else:
         st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 
@@ -230,7 +237,7 @@ try:
             fillcolor="rgba(0,0,0,0)",
         )
 
-        st.plotly_chart(fig_heatmap, use_container_width=True)
+        st.plotly_chart(fig_heatmap, width="stretch")
     else:
         st.info("📊 Dados insuficientes para gerar o heatmap.")
 except Exception as e:
@@ -275,4 +282,4 @@ if all_tags:
         coloraxis_showscale=False,
         yaxis=dict(categoryorder="total ascending"),
     )
-    st.plotly_chart(fig_tags, use_container_width=True)
+    st.plotly_chart(fig_tags, width="stretch")

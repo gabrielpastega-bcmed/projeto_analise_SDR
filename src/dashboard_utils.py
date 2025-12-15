@@ -216,10 +216,14 @@ def get_lead_origin(chat) -> str:
         if hasattr(chat, "contact") and chat.contact:
             custom_fields = getattr(chat.contact, "customFields", None)
             if custom_fields and isinstance(custom_fields, dict):
-                return custom_fields.get("origem_do_negocio", "Não informado")
+                origin = custom_fields.get("origem_do_negocio", None)
+                # Tratar null, None, vazio, 'null', 'None' como 'Não Informado'
+                if origin is None or origin == "" or origin == "null" or origin == "None":
+                    return "Não Informado"
+                return origin
     except Exception:
         pass
-    return "Não informado"
+    return "Não Informado"
 
 
 # ================================================================
@@ -248,6 +252,11 @@ def init_session_state():
 def apply_filters(chats: List, filters: Dict) -> List:
     """Aplica filtros globais à lista de chats."""
     filtered = chats
+
+    # Filtro por período (datas)
+    if filters.get("date_range"):
+        start_date, end_date = filters["date_range"]
+        filtered = [c for c in filtered if c.firstMessageDate and start_date <= c.firstMessageDate.date() <= end_date]
 
     # Filtro por agente
     if filters.get("agents"):

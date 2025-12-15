@@ -114,6 +114,20 @@ if st.session_state.data_loaded and st.session_state.chats:
     st.sidebar.markdown("---")
     st.sidebar.header("🔍 Filtros Globais")
 
+    # Filtro por período (datas)
+    dates = [c.firstMessageDate for c in chats if c.firstMessageDate]
+    date_range: tuple | None = None  # Inicializar antes do if
+    if dates:
+        min_date = min(dates).date()
+        max_date = max(dates).date()
+        date_range = st.sidebar.date_input(
+            "Período",
+            value=(min_date, max_date),
+            min_value=min_date,
+            max_value=max_date,
+            help="Filtrar por período de atendimento",
+        )
+
     # Filtro por agente
     agents = list(set(c.agent.name for c in chats if c.agent and c.agent.name))
     agents.sort()
@@ -136,10 +150,35 @@ if st.session_state.data_loaded and st.session_state.chats:
         placeholder="Todas as origens",
     )
 
+    # Filtro por tags
+    from src.dashboard_utils import get_chat_tags
+
+    all_available_tags_set: set[str] = set()
+    for c in chats:
+        all_available_tags_set.update(get_chat_tags(c))
+    all_available_tags = sorted(list(all_available_tags_set))
+
+    selected_tags = st.sidebar.multiselect(
+        "Tags de Qualificação",
+        options=all_available_tags,
+        default=[],
+        placeholder="Todas as tags",
+    )
+
+    # Filtro horário comercial
+    business_hours_only = st.sidebar.checkbox(
+        "Apenas Horário Comercial",
+        value=False,
+        help="Filtrar apenas contatos em horário comercial (Seg-Sex, 08:00-18:00)",
+    )
+
     # Salvar filtros no session_state
     st.session_state.filters = {
         "agents": selected_agents,
         "origins": selected_origins,
+        "tags": selected_tags,
+        "business_hours_only": business_hours_only,
+        "date_range": date_range if date_range and len(date_range) == 2 else None,
     }
 
     # ================================================================
@@ -161,9 +200,9 @@ if st.session_state.data_loaded and st.session_state.chats:
     # Período dos dados
     dates = [c.firstMessageDate for c in chats if c.firstMessageDate]
     if dates:
-        min_date = min(dates).strftime("%d/%m/%Y")
-        max_date = max(dates).strftime("%d/%m/%Y")
-        col4.metric("Período", f"{min_date} - {max_date}")
+        min_date_str = min(dates).strftime("%d/%m/%Y")
+        max_date_str = max(dates).strftime("%d/%m/%Y")
+        col4.metric("Período", f"{min_date_str} - {max_date_str}")
 
     st.markdown("---")
 

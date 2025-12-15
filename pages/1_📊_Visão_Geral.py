@@ -10,6 +10,7 @@ import streamlit as st
 from src.dashboard_utils import (
     apply_chart_theme,
     apply_custom_css,
+    apply_filters,
     classify_lead_qualification,
     get_chat_tags,
     get_colors,
@@ -32,7 +33,13 @@ if "chats" not in st.session_state or not st.session_state.chats:
     st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
     st.stop()
 
-chats = st.session_state.chats
+# Aplicar filtros globais
+filters = st.session_state.get("filters", {})
+chats = apply_filters(st.session_state.chats, filters)
+
+if not chats:
+    st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
+    st.stop()
 
 
 # ================================================================
@@ -86,6 +93,13 @@ with col_left:
         "sem_tag": "Sem Tag",
     }
 
+    color_map = {
+        "Qualificado": COLORS["success"],
+        "Não Qualificado": COLORS["danger"],
+        "Outros": COLORS["warning"],
+        "Sem Tag": COLORS["info"],
+    }
+
     qual_df_data = [{"Qualificação": labels_map.get(k, k), "Quantidade": v} for k, v in qual_counts.items()]
 
     if qual_df_data:
@@ -94,53 +108,61 @@ with col_left:
         qual_df = pd.DataFrame(qual_df_data)
         # Ordenar por quantidade (maior para menor)
         qual_df = qual_df.sort_values("Quantidade", ascending=False)
-        fig_qual = px.pie(
+
+        fig_qual = px.bar(
             qual_df,
-            values="Quantidade",
-            names="Qualificação",
-            color_discrete_sequence=[COLORS["success"], COLORS["danger"], COLORS["warning"], COLORS["info"]],
-            hole=0.4,
+            x="Quantidade",
+            y="Qualificação",
+            orientation="h",
+            color="Qualificação",
+            color_discrete_map=color_map,
+            text="Quantidade",
         )
-        # Adicionar labels visíveis com valor e porcentagem
-        fig_qual.update_traces(textinfo="value+percent", textposition="outside")
+        fig_qual.update_traces(textposition="outside")
         fig_qual = apply_chart_theme(fig_qual)
-        st.plotly_chart(fig_qual, width="stretch")
+        fig_qual.update_layout(showlegend=False)
+        st.plotly_chart(fig_qual, key="distribuicao_qualificacao")
 
 
 # Volume por Origem
 with col_right:
     st.subheader("📈 Volume por Origem")
 
+    # Extrair origens de cada chat
     origins = [get_lead_origin(c) for c in chats]
     origin_counts = {}
     for origin in origins:
         origin_counts[origin] = origin_counts.get(origin, 0) + 1
 
-    # Ordenar por quantidade
+    # Ordenar por quantidade (top 10)
     sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
-    if sorted_origins:
+    if len(sorted_origins) > 0:
         import pandas as pd
 
+        # Criar DataFrame
         origin_df = pd.DataFrame(sorted_origins, columns=["Origem", "Quantidade"])
+        origin_df = origin_df.sort_values("Quantidade", ascending=True)  # Ascending para maior ficar em cima
+
+        # Gráfico de barras horizontais com Plotly
         fig_origin = px.bar(
             origin_df,
             x="Quantidade",
             y="Origem",
             orientation="h",
-            color="Quantidade",
-            color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
-            text="Quantidade",  # Labels visíveis
+            text="Quantidade",
+            color_discrete_sequence=[COLORS["primary"]],
         )
-        fig_origin = apply_chart_theme(fig_origin)
         fig_origin.update_traces(textposition="outside")
-        # Ordenar Y do maior para menor (reverter ordem padrão)
+        fig_origin = apply_chart_theme(fig_origin)
         fig_origin.update_layout(
             showlegend=False,
-            coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),
+            xaxis_title="Quantidade",
+            yaxis_title="",
         )
-        st.plotly_chart(fig_origin, width="stretch")
+        st.plotly_chart(fig_origin, key="volume_por_origem_chart")
+    else:
+        st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 
 
 # ================================================================
@@ -213,7 +235,7 @@ try:
             fillcolor="rgba(0,0,0,0)",
         )
 
-        st.plotly_chart(fig_heatmap, width="stretch")
+        st.plotly_chart(fig_heatmap, key="heatmap_mensagens")
     else:
         st.info("📊 Dados insuficientes para gerar o heatmap.")
 except Exception as e:
@@ -258,4 +280,4 @@ if all_tags:
         coloraxis_showscale=False,
         yaxis=dict(categoryorder="total ascending"),
     )
-    st.plotly_chart(fig_tags, width="stretch")
+    st.plotly_chart(fig_tags, key="tags_frequentes")

@@ -14,6 +14,7 @@ from src.dashboard_utils import (
     TAGS_OUTROS,
     apply_chart_theme,
     apply_custom_css,
+    apply_filters,
     classify_lead_qualification,
     get_chat_tags,
     get_colors,
@@ -36,7 +37,13 @@ if "chats" not in st.session_state or not st.session_state.chats:
     st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
     st.stop()
 
-chats = st.session_state.chats
+# Aplicar filtros globais
+filters = st.session_state.get("filters", {})
+chats = apply_filters(st.session_state.chats, filters)
+
+if not chats:
+    st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
+    st.stop()
 
 
 # ================================================================
@@ -108,49 +115,52 @@ for origin, data in origin_data.items():
 
 if origin_metrics:
     df_origins = pd.DataFrame(origin_metrics)
-    df_origins = df_origins.sort_values("Total", ascending=False)
+    df_origins = df_origins.sort_values("Total", ascending=True)  # Ascending para maior ficar em cima
 
     col_left, col_right = st.columns(2)
 
     with col_left:
         st.markdown("**Volume por Origem**")
+        # Gráfico de barras horizontais com Plotly
         fig_vol = px.bar(
             df_origins.head(10),
             x="Total",
             y="Origem",
             orientation="h",
-            color="Total",
-            color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
-            text="Total",  # Labels visíveis
+            text="Total",
+            color_discrete_sequence=[COLORS["primary"]],
         )
-        fig_vol = apply_chart_theme(fig_vol)
         fig_vol.update_traces(textposition="outside")
+        fig_vol = apply_chart_theme(fig_vol)
         fig_vol.update_layout(
             showlegend=False,
-            coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
+            xaxis_title="Total de Leads",
+            yaxis_title="",
         )
-        st.plotly_chart(fig_vol, width="stretch")
+        st.plotly_chart(fig_vol, key="leads_volume_por_origem")
 
     with col_right:
         st.markdown("**Taxa de Qualificação por Origem**")
+        # Gráfico de barras horizontais com gradiente
+        df_qual_sorted = df_origins.head(10).sort_values("Taxa Qualificação (%)", ascending=True)
         fig_qual = px.bar(
-            df_origins.head(10),
+            df_qual_sorted,
             x="Taxa Qualificação (%)",
             y="Origem",
             orientation="h",
+            text=df_qual_sorted["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),
             color="Taxa Qualificação (%)",
             color_continuous_scale=[[0, COLORS["danger"]], [0.5, COLORS["warning"]], [1, COLORS["success"]]],
-            text=df_origins.head(10)["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),  # Labels
         )
-        fig_qual = apply_chart_theme(fig_qual)
         fig_qual.update_traces(textposition="outside")
+        fig_qual = apply_chart_theme(fig_qual)
         fig_qual.update_layout(
             showlegend=False,
             coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
+            xaxis_title="Taxa de Qualificação (%)",
+            yaxis_title="",
         )
-        st.plotly_chart(fig_qual, width="stretch")
+        st.plotly_chart(fig_qual, key="leads_taxa_qualificacao_origem")
 else:
     st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
 
@@ -181,7 +191,7 @@ fig_funnel = go.Figure(
     )
 )
 fig_funnel = apply_chart_theme(fig_funnel)
-st.plotly_chart(fig_funnel, width="stretch")
+st.plotly_chart(fig_funnel, key="funil_qualificacao")
 
 
 # ================================================================
@@ -233,7 +243,7 @@ if all_tags:
     fig_tags = apply_chart_theme(fig_tags)
     fig_tags.update_traces(textposition="outside")
     fig_tags.update_layout(yaxis=dict(categoryorder="total ascending"))  # Ordenar maior→menor
-    st.plotly_chart(fig_tags, width="stretch")
+    st.plotly_chart(fig_tags, key="distribuicao_tags")
 
 
 # ================================================================

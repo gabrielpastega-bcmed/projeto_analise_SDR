@@ -10,6 +10,7 @@ import streamlit as st
 from src.dashboard_utils import (
     apply_chart_theme,
     apply_custom_css,
+    apply_filters,
     classify_contact_context,
     classify_lead_qualification,
     get_chat_tags,
@@ -32,7 +33,13 @@ if "chats" not in st.session_state or not st.session_state.chats:
     st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
     st.stop()
 
-chats = st.session_state.chats
+# Aplicar filtros globais
+filters = st.session_state.get("filters", {})
+chats = apply_filters(st.session_state.chats, filters)
+
+if not chats:
+    st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
+    st.stop()
 
 
 # ================================================================
@@ -161,7 +168,7 @@ with col_left:
     fig_tme = apply_chart_theme(fig_tme)
     fig_tme.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     fig_tme.update_traces(textposition="outside")
-    st.plotly_chart(fig_tme, width="stretch")
+    st.plotly_chart(fig_tme, key="ranking_tme")
 
 
 with col_right:
@@ -179,38 +186,53 @@ with col_right:
         text=df_sorted_qual["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),
     )
     fig_qual = apply_chart_theme(fig_qual)
-    fig_qual.update_layout(showlegend=False, coloraxis_showscale=False)
+    fig_qual.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     fig_qual.update_traces(textposition="outside")
-    st.plotly_chart(fig_qual, width="stretch")
+    st.plotly_chart(fig_qual, key="ranking_qualificacao")
 
 
 # ================================================================
-# SCATTER: TME vs VOLUME
+# VOLUME E TME POR AGENTE (2 gráficos separados)
 # ================================================================
 
 st.markdown("---")
-st.subheader("📊 TME vs Volume de Atendimentos")
+st.subheader("📊 Volume e TME por Agente")
 
-fig_scatter = px.scatter(
-    df_agents,
-    x="Atendimentos",
-    y="TME (min)",
-    size="Taxa Qualificação (%)",
-    color="Taxa Qualificação (%)",
-    hover_name="Agente",
-    text="Agente",  # Label com nome do agente
-    color_continuous_scale=[[0, COLORS["danger"]], [1, COLORS["success"]]],
-    size_max=50,
-)
-fig_scatter = apply_chart_theme(fig_scatter)
-fig_scatter.update_traces(textposition="top center", textfont_size=9)
-fig_scatter.update_layout(
-    xaxis_title="Volume de Atendimentos",
-    yaxis_title="TME Médio (minutos)",
-)
-st.plotly_chart(fig_scatter, width="stretch")
+col_vol, col_tme = st.columns(2)
 
-st.caption("💡 O tamanho das bolhas representa a taxa de qualificação.")
+with col_vol:
+    st.markdown("**📈 Volume de Atendimentos**")
+    df_vol = df_agents.sort_values("Atendimentos", ascending=True).head(15)
+    fig_vol = px.bar(
+        df_vol,
+        x="Atendimentos",
+        y="Agente",
+        orientation="h",
+        color="Atendimentos",
+        color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
+        text="Atendimentos",
+    )
+    fig_vol = apply_chart_theme(fig_vol)
+    fig_vol.update_traces(textposition="outside")
+    fig_vol.update_layout(showlegend=False, coloraxis_showscale=False)
+    st.plotly_chart(fig_vol, key="agentes_volume")
+
+with col_tme:
+    st.markdown("**⏱️ TME Médio (minutos)**")
+    df_tme_sorted = df_agents.sort_values("TME (min)", ascending=True).head(15)
+    fig_tme_agents = px.bar(
+        df_tme_sorted,
+        x="TME (min)",
+        y="Agente",
+        orientation="h",
+        color="TME (min)",
+        color_continuous_scale=[[0, COLORS["success"]], [0.5, COLORS["warning"]], [1, COLORS["danger"]]],
+        text=df_tme_sorted["TME (min)"].apply(lambda x: f"{x:.1f}"),
+    )
+    fig_tme_agents = apply_chart_theme(fig_tme_agents)
+    fig_tme_agents.update_traces(textposition="outside")
+    fig_tme_agents.update_layout(showlegend=False, coloraxis_showscale=False)
+    st.plotly_chart(fig_tme_agents, key="agentes_tme")
 
 
 # ================================================================

@@ -15,8 +15,8 @@ from pydantic import BaseModel, Field, field_validator
 class Organization(BaseModel):
     """Representa a organização associada a um contato."""
 
-    id: str = Field(alias="_id", description="ID único da organização.")
-    name: str = Field(description="Nome da organização.")
+    id: Optional[str] = Field(None, alias="_id", description="ID único da organização.")
+    name: Optional[str] = Field(None, description="Nome da organização.")
     description: Optional[str] = Field(None, description="Descrição da organização.")
 
 

@@ -158,6 +158,8 @@ with col_right:
             yaxis=dict(categoryorder="total ascending"),
         )
         st.plotly_chart(fig_origin, width="stretch")
+    else:
+        st.info("📊 Sem dados de origem disponíveis.")
 
 
 # ================================================================

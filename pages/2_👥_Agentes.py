@@ -192,32 +192,47 @@ with col_right:
 
 
 # ================================================================
-# SCATTER: TME vs VOLUME
+# VOLUME E TME POR AGENTE (2 gráficos separados)
 # ================================================================
 
 st.markdown("---")
-st.subheader("📊 TME vs Volume de Atendimentos")
+st.subheader("📊 Volume e TME por Agente")
 
-fig_scatter = px.scatter(
-    df_agents,
-    x="Atendimentos",
-    y="TME (min)",
-    size="Taxa Qualificação (%)",
-    color="Taxa Qualificação (%)",
-    hover_name="Agente",
-    text="Agente",  # Label com nome do agente
-    color_continuous_scale=[[0, COLORS["danger"]], [1, COLORS["success"]]],
-    size_max=50,
-)
-fig_scatter = apply_chart_theme(fig_scatter)
-fig_scatter.update_traces(textposition="top center", textfont_size=9)
-fig_scatter.update_layout(
-    xaxis_title="Volume de Atendimentos",
-    yaxis_title="TME Médio (minutos)",
-)
-st.plotly_chart(fig_scatter, width="stretch")
+col_vol, col_tme = st.columns(2)
 
-st.caption("💡 O tamanho das bolhas representa a taxa de qualificação.")
+with col_vol:
+    st.markdown("**📈 Volume de Atendimentos**")
+    df_vol = df_agents.sort_values("Atendimentos", ascending=True).head(15)
+    fig_vol = px.bar(
+        df_vol,
+        x="Atendimentos",
+        y="Agente",
+        orientation="h",
+        color="Atendimentos",
+        color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
+        text="Atendimentos",
+    )
+    fig_vol = apply_chart_theme(fig_vol)
+    fig_vol.update_traces(textposition="outside")
+    fig_vol.update_layout(showlegend=False, coloraxis_showscale=False)
+    st.plotly_chart(fig_vol, use_container_width=True)
+
+with col_tme:
+    st.markdown("**⏱️ TME Médio (minutos)**")
+    df_tme_sorted = df_agents.sort_values("TME (min)", ascending=True).head(15)
+    fig_tme_agents = px.bar(
+        df_tme_sorted,
+        x="TME (min)",
+        y="Agente",
+        orientation="h",
+        color="TME (min)",
+        color_continuous_scale=[[0, COLORS["success"]], [0.5, COLORS["warning"]], [1, COLORS["danger"]]],
+        text=df_tme_sorted["TME (min)"].apply(lambda x: f"{x:.1f}"),
+    )
+    fig_tme_agents = apply_chart_theme(fig_tme_agents)
+    fig_tme_agents.update_traces(textposition="outside")
+    fig_tme_agents.update_layout(showlegend=False, coloraxis_showscale=False)
+    st.plotly_chart(fig_tme_agents, use_container_width=True)
 
 
 # ================================================================

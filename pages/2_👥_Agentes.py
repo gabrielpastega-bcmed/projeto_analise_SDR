@@ -231,7 +231,7 @@ with col_tme:
     )
     fig_tme_agents = apply_chart_theme(fig_tme_agents)
     fig_tme_agents.update_traces(textposition="outside")
-    fig_tme_agents.update_layout(showlegend=False, coloraxis_showscale=False)
+    fig_tme_agents.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
     st.plotly_chart(fig_tme_agents, key="agentes_tme")
 
 

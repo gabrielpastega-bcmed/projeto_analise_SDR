@@ -80,7 +80,7 @@ fig_hours.add_trace(
         x=df_hours["Hora"],
         y=df_hours["Horário Comercial"],
         name="Horário Comercial",
-        marker_color=COLORS["primary"],
+        marker_color=COLORS["success"],
     )
 )
 

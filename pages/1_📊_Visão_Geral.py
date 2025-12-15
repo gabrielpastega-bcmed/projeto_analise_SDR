@@ -10,6 +10,7 @@ import streamlit as st
 from src.dashboard_utils import (
     apply_chart_theme,
     apply_custom_css,
+    apply_filters,
     classify_lead_qualification,
     get_chat_tags,
     get_colors,
@@ -32,7 +33,13 @@ if "chats" not in st.session_state or not st.session_state.chats:
     st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
     st.stop()
 
-chats = st.session_state.chats
+# Aplicar filtros globais
+filters = st.session_state.get("filters", {})
+chats = apply_filters(st.session_state.chats, filters)
+
+if not chats:
+    st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
+    st.stop()
 
 
 # ================================================================
@@ -86,6 +93,13 @@ with col_left:
         "sem_tag": "Sem Tag",
     }
 
+    color_map = {
+        "Qualificado": COLORS["success"],
+        "Não Qualificado": COLORS["danger"],
+        "Outros": COLORS["warning"],
+        "Sem Tag": COLORS["info"],
+    }
+
     qual_df_data = [{"Qualificação": labels_map.get(k, k), "Quantidade": v} for k, v in qual_counts.items()]
 
     if qual_df_data:
@@ -93,17 +107,20 @@ with col_left:
 
         qual_df = pd.DataFrame(qual_df_data)
         # Ordenar por quantidade (maior para menor)
-        qual_df = qual_df.sort_values("Quantidade", ascending=False)
-        fig_qual = px.pie(
+        qual_df = qual_df.sort_values("Quantidade", ascending=True)
+
+        fig_qual = px.bar(
             qual_df,
-            values="Quantidade",
-            names="Qualificação",
-            color_discrete_sequence=[COLORS["success"], COLORS["danger"], COLORS["warning"], COLORS["info"]],
-            hole=0.4,
+            x="Quantidade",
+            y="Qualificação",
+            orientation="h",
+            color="Qualificação",
+            color_discrete_map=color_map,
+            text="Quantidade",
         )
-        # Adicionar labels visíveis com valor e porcentagem
-        fig_qual.update_traces(textinfo="value+percent", textposition="outside")
+        fig_qual.update_traces(textposition="outside")
         fig_qual = apply_chart_theme(fig_qual)
+        fig_qual.update_layout(showlegend=False)
         st.plotly_chart(fig_qual, width="stretch")
 
 

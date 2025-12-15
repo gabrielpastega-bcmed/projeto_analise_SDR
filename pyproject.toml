@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "projeto-analise-sdr"
-version = "0.4.0"
+version = "0.5.0"
 description = ""
 authors = ["gabrielpastega-bcned <gabriel.pastega@bcmed.com.br>"]
 readme = "README.md"

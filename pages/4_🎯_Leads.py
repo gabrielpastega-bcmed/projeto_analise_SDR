@@ -135,7 +135,7 @@ if origin_metrics:
         fig_vol.update_layout(
             showlegend=False,
             coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total descending"),  # Ordenar maior→menor
+            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
         )
         st.plotly_chart(fig_vol, width="stretch")
 
@@ -155,7 +155,7 @@ if origin_metrics:
         fig_qual.update_layout(
             showlegend=False,
             coloraxis_showscale=False,
-            yaxis=dict(categoryorder="total descending"),  # Ordenar maior→menor
+            yaxis=dict(categoryorder="total ascending"),  # Ordenar maior→menor
         )
         st.plotly_chart(fig_qual, width="stretch")
 else:
@@ -239,7 +239,7 @@ if all_tags:
     )
     fig_tags = apply_chart_theme(fig_tags)
     fig_tags.update_traces(textposition="outside")
-    fig_tags.update_layout(yaxis=dict(categoryorder="total descending"))  # Ordenar maior→menor
+    fig_tags.update_layout(yaxis=dict(categoryorder="total ascending"))  # Ordenar maior→menor
     st.plotly_chart(fig_tags, width="stretch")
 
 

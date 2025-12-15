@@ -66,6 +66,8 @@ fig_hours.add_trace(
         name="Total",
         marker_color=COLORS["info"],
         opacity=0.6,
+        text=df_hours["Total"],  # Labels visíveis
+        textposition="outside",
     )
 )
 fig_hours.add_trace(
@@ -74,6 +76,8 @@ fig_hours.add_trace(
         y=df_hours["Horário Comercial"],
         name="Horário Comercial",
         marker_color=COLORS["primary"],
+        text=df_hours["Horário Comercial"],  # Labels visíveis
+        textposition="inside",
     )
 )
 
@@ -126,9 +130,11 @@ if not df_tme_hour_filtered.empty:
         x="Hora",
         y="TME (min)",
         markers=True,
+        text=df_tme_hour_filtered["TME (min)"].apply(lambda x: f"{x:.1f}"),  # Labels
         color_discrete_sequence=[COLORS["primary"]],
     )
     fig_tme_hour = apply_chart_theme(fig_tme_hour)
+    fig_tme_hour.update_traces(textposition="top center")
     fig_tme_hour.update_layout(
         xaxis_title="Hora do Primeiro Contato",
         yaxis_title="TME Médio (minutos)",
@@ -243,9 +249,11 @@ if date_counts:
         x="Data",
         y="Contatos",
         markers=True,
+        text="Contatos",  # Labels visíveis
         color_discrete_sequence=[COLORS["primary"]],
     )
     fig_trend = apply_chart_theme(fig_trend)
+    fig_trend.update_traces(textposition="top center")
     fig_trend.update_layout(
         xaxis_title="Data",
         yaxis_title="Número de Contatos",

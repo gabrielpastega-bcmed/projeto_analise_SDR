@@ -6,6 +6,7 @@ TME por horário, primeiro contato, e análises de tempo.
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import pytz
 import streamlit as st
 
 from src.dashboard_utils import (
@@ -49,13 +50,19 @@ if not chats:
 
 st.subheader("📞 Volume de Primeiros Contatos por Hora do Dia")
 
-# Agrupar por hora
+# Agrupar por hora (usando timezone local)
+TIMEZONE = pytz.timezone("America/Sao_Paulo")
 hour_counts = {h: 0 for h in range(24)}
 hour_counts_bh = {h: 0 for h in range(24)}  # Business hours only
 
 for chat in chats:
     if chat.firstMessageDate:
-        hour = chat.firstMessageDate.hour
+        # Converter para timezone local
+        if chat.firstMessageDate.tzinfo is None:
+            local_dt = TIMEZONE.localize(chat.firstMessageDate)
+        else:
+            local_dt = chat.firstMessageDate.astimezone(TIMEZONE)
+        hour = local_dt.hour
         hour_counts[hour] += 1
 
         if is_business_hour(chat.firstMessageDate):

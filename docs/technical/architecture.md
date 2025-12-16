@@ -41,9 +41,12 @@ flowchart TD
 | Componente | Arquivo | Responsabilidade |
 |------------|---------|------------------|
 | Modelos | `src/models.py` | Estrutura de dados (Pydantic) |
+| Schemas LLM | `src/llm_schemas.py` | Validação de output LLM |
 | Ingestão | `src/ingestion.py` | Carregamento de dados |
 | Análise Ops | `src/ops_analysis.py` | Métricas quantitativas |
-| Análise LLM | `src/llm_analysis.py` | Análise qualitativa |
+| Análise LLM (Mock) | `src/llm_analysis.py` | Análise qualitativa (mock) |
+| Gemini Client | `src/gemini_client.py` | Integração Gemini API |
+| Batch Analyzer | `src/batch_analyzer.py` | ETL com checkpoint |
 | Relatórios | `src/reporting.py` | Agregação de resultados |
 | Dashboard | `dashboard.py` | Interface visual |
 | Pipeline | `main.py` | Orquestração |

@@ -87,10 +87,13 @@ projeto_analise_SDR/
 │   ├── models.py           # Modelos Pydantic para parsing de dados
 │   ├── ingestion.py        # Carregamento de dados (JSON/BigQuery)
 │   ├── ops_analysis.py     # Análise operacional (TMA, TME)
-│   ├── llm_analysis.py     # Análise qualitativa (LLM)
+│   ├── llm_analysis.py     # Análise qualitativa (LLM mock)
+│   ├── gemini_client.py    # Cliente Gemini API com validação
+│   ├── llm_schemas.py      # Schemas Pydantic para output LLM
+│   ├── batch_analyzer.py   # ETL com checkpoint e rate limit
 │   ├── dashboard_utils.py  # Utilitários do dashboard
 │   └── reporting.py        # Agregação e relatórios
-├── tests/                  # Testes unitários
+├── tests/                  # Testes unitários (100 testes, 70% cobertura)
 ├── data/raw/               # Dados de exemplo
 ├── .github/workflows/      # CI/CD com GitHub Actions
 └── pyproject.toml          # Configuração do projeto

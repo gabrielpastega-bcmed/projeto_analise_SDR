@@ -56,6 +56,9 @@ async def run_analysis(week_start: datetime, week_end: datetime, max_chats: int 
         week_end: Fim da semana.
         max_chats: Máximo de chats a analisar.
     """
+    import json
+    from pathlib import Path
+
     from src.batch_analyzer import BatchAnalyzer
     from src.ingestion import load_chats_from_bigquery
 
@@ -70,10 +73,26 @@ async def run_analysis(week_start: datetime, week_end: datetime, max_chats: int 
 
     analyzer = BatchAnalyzer()
 
-    # Verificar chats já analisados
+    # Arquivo de checkpoint
+    checkpoint_file = Path(f"data/analysis_results/checkpoint_{week_start.strftime('%Y-%m-%d')}.json")
+    checkpoint_file.parent.mkdir(parents=True, exist_ok=True)
+
+    # Carregar checkpoint existente
+    existing_results = []
+    existing_ids = set()
+    if checkpoint_file.exists():
+        with open(checkpoint_file, encoding="utf-8") as f:
+            existing_results = json.load(f)
+            existing_ids = {r.get("chat_id") for r in existing_results}
+        print(f"[CHECKPOINT] {len(existing_results)} chats ja processados")
+
+    # Verificar chats já analisados no BigQuery
     print("[1/4] Verificando chats ja analisados...")
     analyzed_ids = analyzer.get_analyzed_chat_ids(week_start)
-    print(f"      {len(analyzed_ids)} chats ja analisados nesta semana")
+    print(f"      {len(analyzed_ids)} chats ja analisados no BigQuery")
+
+    # Combinar IDs já processados
+    skip_ids = analyzed_ids | existing_ids
 
     # Carregar chats do BigQuery
     print("[2/4] Carregando chats do BigQuery...")
@@ -83,7 +102,7 @@ async def run_analysis(week_start: datetime, week_end: datetime, max_chats: int 
     # Filtrar chats da semana que ainda não foram analisados
     chats_to_analyze = []
     for chat in chats:
-        if chat.id in analyzed_ids:
+        if chat.id in skip_ids:
             continue
         if not chat.messages:
             continue
@@ -104,40 +123,57 @@ async def run_analysis(week_start: datetime, week_end: datetime, max_chats: int 
 
     if not chats_to_analyze:
         print("\n[OK] Nenhum chat novo para analisar!")
+        # Se tem checkpoint, salvar no BigQuery
+        if existing_results:
+            print("[4/4] Salvando checkpoint no BigQuery...")
+            saved = analyzer.save_to_bigquery(existing_results, week_start, week_end)
+            print(f"      {saved} resultados salvos")
         return
 
     # Limitar quantidade
     chats_to_analyze = chats_to_analyze[:max_chats]
     print(f"      Analisando {len(chats_to_analyze)} chats...")
 
+    # Callback para salvar checkpoint
+    def save_checkpoint(result):
+        existing_results.append(result)
+        with open(checkpoint_file, "w", encoding="utf-8") as f:
+            json.dump(existing_results, f, ensure_ascii=False, indent=2)
+
     # Executar análise
     print("[3/4] Executando analise com Gemini...")
 
     def progress_callback(current, total):
         pct = current / total * 100
-        print(f"      Progresso: {current}/{total} ({pct:.1f}%)", end="\r")
+        print(f"      Progresso: {current}/{total} ({pct:.1f}%)")
 
-    results = await analyzer.run_batch(
+    await analyzer.run_batch(
         chats_to_analyze,
-        batch_size=5,
         progress_callback=progress_callback,
+        checkpoint_callback=save_checkpoint,
     )
-    print()
+
+    # Combinar com checkpoint existente
+    all_results = existing_results  # Já inclui os novos via callback
 
     # Contar resultados válidos
-    valid_results = [r for r in results if "error" not in r]
-    error_results = [r for r in results if "error" in r]
+    valid_results = [r for r in all_results if "error" not in r]
+    error_results = [r for r in all_results if "error" in r]
 
-    print(f"      {len(valid_results)} analises concluidas")
+    print(f"      {len(valid_results)} analises concluidas no total")
     if error_results:
         print(f"      {len(error_results)} erros")
 
     # Salvar no BigQuery
     print("[4/4] Salvando resultados no BigQuery...")
-    saved = analyzer.save_to_bigquery(results, week_start, week_end)
+    saved = analyzer.save_to_bigquery(all_results, week_start, week_end)
 
-    # Também salvar localmente como backup
-    analyzer.save_results(results, f"analysis_{week_start.strftime('%Y-%m-%d')}.json")
+    # Também salvar localmente como backup final
+    analyzer.save_results(all_results, f"analysis_{week_start.strftime('%Y-%m-%d')}.json")
+
+    # Limpar checkpoint (concluído com sucesso)
+    if checkpoint_file.exists():
+        checkpoint_file.unlink()
 
     print(f"\n{'=' * 60}")
     print("CONCLUIDO!")

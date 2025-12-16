@@ -19,6 +19,9 @@ import pytz
 
 from src.models import Chat
 
+# Opt-in para o novo comportamento do pandas (evita FutureWarning)
+pd.set_option("future.no_silent_downcasting", True)
+
 
 class AgentPerformance(TypedDict):
     """
@@ -86,7 +89,8 @@ def _calculate_metrics_in_batches(messages_df: pd.DataFrame) -> pd.DataFrame:
 
     # Identifica o remetente da mensagem anterior, preenchendo NA com False
     # Isso corrige o bug onde a primeira mensagem era ignorada na comparação.
-    messages_df["prev_is_agent"] = messages_df.groupby("chat_id")["is_agent"].shift(1).fillna(False)
+    # Usa astype + fillna para evitar FutureWarning de downcasting
+    messages_df["prev_is_agent"] = messages_df.groupby("chat_id")["is_agent"].shift(1).fillna(False).astype(bool)
     messages_df["prev_timestamp"] = messages_df.groupby("chat_id")["timestamp"].shift(1)
 
     # Filtra apenas as respostas do agente a mensagens do cliente

@@ -14,7 +14,10 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
 from src.gemini_client import GeminiClient
+from src.logging_config import get_logger
 from src.models import Chat
+
+logger = get_logger(__name__)
 
 
 def get_previous_week_range() -> tuple[datetime, datetime]:
@@ -70,7 +73,7 @@ class BatchAnalyzer:
         self,
         api_key: Optional[str] = None,
         results_dir: str = "data/analysis_results",
-        rate_limit: int = 60,
+        rate_limit: int = 240,  # Tier 1: 300 RPM max, usando 80% como segurança
     ):
         """
         Inicializa o analisador de batch.
@@ -78,13 +81,14 @@ class BatchAnalyzer:
         Args:
             api_key: Chave de API do Gemini.
             results_dir: Diretório para salvar resultados.
-            rate_limit: Limite de requisições por minuto.
+            rate_limit: Limite de requisições por minuto (default: 10 para free tier).
         """
         self.client = GeminiClient(api_key)
         self.results_dir = Path(results_dir)
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self.rate_limit = rate_limit
         self._request_times: List[float] = []
+        logger.info(f"BatchAnalyzer inicializado (rate_limit={rate_limit} RPM)")
 
     async def _wait_for_rate_limit(self) -> None:
         """Aguarda se necessário para respeitar o rate limit."""
@@ -104,14 +108,17 @@ class BatchAnalyzer:
 
     async def analyze_chat(self, chat: Chat) -> Dict[str, Any]:
         """
-        Analisa um único chat com rate limiting.
+        Analisa um único chat com rate limiting e métricas.
 
         Args:
             chat: O chat a ser analisado.
 
         Returns:
-            Dicionário com resultados da análise.
+            Dicionário com resultados da análise, incluindo métricas.
         """
+        import time
+
+        start_time = time.time()
         await self._wait_for_rate_limit()
 
         transcript = format_transcript(chat)
@@ -120,36 +127,50 @@ class BatchAnalyzer:
                 "chat_id": chat.id,
                 "error": "Chat sem mensagens",
                 "timestamp": datetime.now().isoformat(),
+                "processing_time_ms": 0,
             }
 
         try:
             results = await self.client.analyze_chat_full(transcript)
+            elapsed_ms = int((time.time() - start_time) * 1000)
+
+            logger.info(
+                f"Chat {chat.id} analisado em {elapsed_ms}ms " f"(agent={chat.agent.name if chat.agent else 'N/A'})"
+            )
+
             return {
                 "chat_id": chat.id,
                 "agent": chat.agent.name if chat.agent else "Sem Agente",
                 "analysis": results,
                 "timestamp": datetime.now().isoformat(),
+                "processing_time_ms": elapsed_ms,
             }
         except Exception as e:
+            elapsed_ms = int((time.time() - start_time) * 1000)
+            logger.error(f"Erro ao analisar chat {chat.id}: {e} ({elapsed_ms}ms)")
+
             return {
                 "chat_id": chat.id,
                 "error": str(e),
                 "timestamp": datetime.now().isoformat(),
+                "processing_time_ms": elapsed_ms,
             }
 
     async def run_batch(
         self,
         chats: List[Chat],
-        batch_size: int = 10,
+        batch_size: int = 1,  # Processamento sequencial por padrão
         progress_callback: Optional[Callable[[int, int], None]] = None,
+        checkpoint_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Processa uma lista de chats em lotes.
+        Processa uma lista de chats sequencialmente com rate limiting.
 
         Args:
             chats: Lista de chats a processar.
-            batch_size: Tamanho de cada lote (para paralelismo limitado).
+            batch_size: Ignorado (mantido para compatibilidade). Sempre processa 1 por vez.
             progress_callback: Função para reportar progresso (current, total).
+            checkpoint_callback: Função para salvar progresso incremental.
 
         Returns:
             Lista de resultados de análise.
@@ -157,15 +178,36 @@ class BatchAnalyzer:
         results = []
         total = len(chats)
 
-        for i in range(0, total, batch_size):
-            batch = chats[i : i + batch_size]
-            batch_results = await asyncio.gather(*[self.analyze_chat(chat) for chat in batch])
-            results.extend(batch_results)
+        for i, chat in enumerate(chats):
+            # Rate limiting antes de cada chat
+            await self._wait_for_rate_limit()
 
+            # Analisar chat
+            result = await self.analyze_chat(chat)
+            results.append(result)
+
+            # Checkpoint incremental
+            if checkpoint_callback:
+                checkpoint_callback(result)
+
+            # Progresso
             if progress_callback:
-                progress_callback(min(i + batch_size, total), total)
+                progress_callback(i + 1, total)
 
-            print(f"Processados {min(i + batch_size, total)}/{total} chats")
+            logger.info(f"Chat {i + 1}/{total} processado: {chat.id}")
+
+        # Estatísticas finais
+        success_count = sum(1 for r in results if "error" not in r)
+        error_count = sum(1 for r in results if "error" in r)
+        total_time_ms = sum(r.get("processing_time_ms", 0) for r in results)
+        avg_time_ms = total_time_ms / len(results) if results else 0
+
+        logger.info(
+            f"Batch concluído: {success_count}/{total} sucesso, "
+            f"{error_count} erros, "
+            f"tempo médio: {avg_time_ms:.0f}ms, "
+            f"tempo total: {total_time_ms/1000:.1f}s"
+        )
 
         return results
 
@@ -385,18 +427,25 @@ class BatchAnalyzer:
             query = f"""
             SELECT *
             FROM `{table_id}`
-            WHERE week_start = '{week_start.strftime("%Y-%m-%d")}'
+            WHERE week_start = @week_start
             ORDER BY analyzed_at DESC
             """
+            job_config = bigquery.QueryJobConfig(
+                query_parameters=[
+                    bigquery.ScalarQueryParameter("week_start", "STRING", week_start.strftime("%Y-%m-%d")),
+                ]
+            )
+            results = client.query(query, job_config=job_config).result()
         else:
+            # Sem parâmetro - busca a semana mais recente
             query = f"""
             SELECT *
             FROM `{table_id}`
             WHERE week_start = (SELECT MAX(week_start) FROM `{table_id}`)
             ORDER BY analyzed_at DESC
             """
+            results = client.query(query).result()
 
-        results = client.query(query).result()
         return [dict(row) for row in results]
 
     def get_available_weeks(self) -> List[Dict[str, Any]]:
@@ -447,8 +496,14 @@ class BatchAnalyzer:
         query = f"""
         SELECT DISTINCT chat_id
         FROM `{table_id}`
-        WHERE week_start = '{week_start.strftime("%Y-%m-%d")}'
+        WHERE week_start = @week_start
         """
 
-        results = client.query(query).result()
+        job_config = bigquery.QueryJobConfig(
+            query_parameters=[
+                bigquery.ScalarQueryParameter("week_start", "STRING", week_start.strftime("%Y-%m-%d")),
+            ]
+        )
+
+        results = client.query(query, job_config=job_config).result()
         return {row.chat_id for row in results}

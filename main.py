@@ -1,10 +1,10 @@
 import asyncio
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
+from src.gemini_client import GeminiClient
 from src.ingestion import get_data_source, load_chats_from_bigquery, load_chats_from_json
-from src.llm_analysis import LLMAnalyzer
 from src.models import Chat
 from src.ops_analysis import analyze_agent_performance
 from src.reporting import generate_report
@@ -13,17 +13,30 @@ from src.reporting import generate_report
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 
-async def process_chat(chat: Chat, llm_analyzer: LLMAnalyzer) -> Dict[str, Any]:
+def format_transcript(chat: Chat) -> str:
+    """Formata mensagens do chat em uma transcrição legível."""
+    lines = []
+    for msg in chat.messages:
+        sender = "Agente" if (msg.sentBy and msg.sentBy.type == "agent") else "Cliente"
+        body = msg.body.replace("<p>", "").replace("</p>", "").replace("<br>", "\n") if msg.body else ""
+        lines.append(f"{sender}: {body}")
+    return "\n".join(lines)
+
+
+async def process_chat(chat: Chat, gemini_client: Optional[GeminiClient]) -> Dict[str, Any]:
     """
     Processa um único chat, executando análises e tratando possíveis exceções.
     """
     try:
         logging.info(f"Processando chat: {chat.id}")
-        # A análise operacional agora é feita em lote, então este dict é um placeholder
-        ops_metrics = {"tme_seconds": 0, "tma_seconds": 0}  # Será preenchido posteriormente
+        ops_metrics = {"tme_seconds": 0, "tma_seconds": 0}
 
-        # Análise com LLM (assíncrona)
-        llm_results = await llm_analyzer.analyze_chat(chat)
+        # Análise com LLM (se cliente disponível)
+        if gemini_client:
+            transcript = format_transcript(chat)
+            llm_results = await gemini_client.analyze_chat_full(transcript)
+        else:
+            llm_results = {"mock": True, "message": "API key não configurada"}
 
         return {
             "chat_id": chat.id,
@@ -84,9 +97,15 @@ async def main():
         logging.info("Análise operacional concluída.")
 
         # 3. Análise com LLM (em paralelo)
-        llm_analyzer = LLMAnalyzer()
+        gemini_client: Optional[GeminiClient] = None
+        try:
+            gemini_client = GeminiClient()
+            logging.info("GeminiClient inicializado com sucesso.")
+        except ValueError:
+            logging.warning("GEMINI_API_KEY não configurada. Análise LLM desabilitada.")
+
         logging.info("Iniciando análise com LLM em paralelo...")
-        tasks = [process_chat(chat, llm_analyzer) for chat in chats]
+        tasks = [process_chat(chat, gemini_client) for chat in chats]
         processed_results = await asyncio.gather(*tasks)
 
         # Filtra os resultados que tiveram erro

@@ -139,4 +139,4 @@ jobs:
       run: poetry install --no-interaction
 
     - name: Run Bandit Security Scan
-      run: poetry run bandit -r src/ -ll || true
+      run: poetry run bandit -r src/ -lll

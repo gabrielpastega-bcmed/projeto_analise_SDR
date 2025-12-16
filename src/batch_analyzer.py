@@ -135,7 +135,7 @@ class BatchAnalyzer:
             elapsed_ms = int((time.time() - start_time) * 1000)
 
             logger.info(
-                f"Chat {chat.id} analisado em {elapsed_ms}ms " f"(agent={chat.agent.name if chat.agent else 'N/A'})"
+                f"Chat {chat.id} analisado em {elapsed_ms}ms (agent={chat.agent.name if chat.agent else 'N/A'})"
             )
 
             return {
@@ -206,7 +206,7 @@ class BatchAnalyzer:
             f"Batch concluído: {success_count}/{total} sucesso, "
             f"{error_count} erros, "
             f"tempo médio: {avg_time_ms:.0f}ms, "
-            f"tempo total: {total_time_ms/1000:.1f}s"
+            f"tempo total: {total_time_ms / 1000:.1f}s"
         )
 
         return results

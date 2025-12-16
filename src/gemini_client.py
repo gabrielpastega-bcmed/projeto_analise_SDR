@@ -87,7 +87,7 @@ class GeminiClient:
 
             except asyncio.TimeoutError:
                 logger.error(
-                    f"Timeout na chamada Gemini (tentativa {attempt + 1}/{max_retries}, " f"timeout={self.timeout}s)"
+                    f"Timeout na chamada Gemini (tentativa {attempt + 1}/{max_retries}, timeout={self.timeout}s)"
                 )
                 if attempt == max_retries - 1:
                     return {"error": f"Timeout após {self.timeout}s"}

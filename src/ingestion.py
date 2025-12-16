@@ -5,16 +5,45 @@ Módulo de ingestão de dados para carregar conversas de diversas fontes.
 import json
 import os
 import re
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, List, MutableMapping, Optional
 
 from dotenv import load_dotenv
 from google.cloud import bigquery
 
+from src.logging_config import get_logger
 from src.models import Chat
 
 # Carrega variáveis de ambiente de um arquivo .env
 load_dotenv()
+
+# Logger para este módulo
+logger = get_logger(__name__)
+
+
+@dataclass
+class LoadResult:
+    """Resultado estruturado de carregamento de dados com métricas de erro."""
+
+    chats: List[Chat] = field(default_factory=list)
+    total_rows: int = 0
+    success_count: int = 0
+    error_count: int = 0
+    error_samples: List[str] = field(default_factory=list)
+
+    @property
+    def success_rate(self) -> float:
+        """Taxa de sucesso do carregamento (0.0 a 1.0)."""
+        if self.total_rows == 0:
+            return 1.0
+        return self.success_count / self.total_rows
+
+    @property
+    def has_errors(self) -> bool:
+        """Indica se houve erros durante o carregamento."""
+        return self.error_count > 0
+
 
 # --- Funções de Anonimização (LGPD) ---
 
@@ -201,10 +230,16 @@ def load_chats_from_bigquery(
     effective_limit = limit if limit else 5000
     query += f"\nLIMIT {effective_limit}"
 
-    print(f"Consultando o BigQuery: {project_id}.{dataset}.{table}")
-    print(f"Filtro de data: >= {start_date_str} ({analysis_days} dias)")
-    print(f"Modo: {'Lightweight (sem mensagens)' if lightweight else 'Completo'}")
-    print(f"Limite: {effective_limit} chats")
+    logger.info(
+        "Iniciando consulta BigQuery",
+        extra={
+            "table": f"{project_id}.{dataset}.{table}",
+            "start_date": start_date_str,
+            "days": analysis_days,
+            "mode": "lightweight" if lightweight else "full",
+            "limit": effective_limit,
+        },
+    )
 
     # Executa a query
     query_job = client.query(query, job_config=job_config)
@@ -212,7 +247,7 @@ def load_chats_from_bigquery(
 
     # Converte os resultados para uma lista de dicionários
     rows = [dict(row) for row in results]
-    print(f"Foram obtidas {len(rows)} linhas do BigQuery")
+    logger.info(f"Obtidas {len(rows)} linhas do BigQuery")
 
     # Converte os dicionários em objetos Chat
     chats = []
@@ -229,13 +264,13 @@ def load_chats_from_bigquery(
             chats.append(chat)
         except Exception as e:
             errors += 1
-            if errors <= 5:  # Imprime apenas os 5 primeiros erros para não poluir o log
-                print(f"Erro ao processar o chat {item.get('id', 'desconhecido')}: {e}")
+            if errors <= 5:
+                logger.warning(f"Erro ao processar chat {item.get('id', 'desconhecido')}: {e}")
 
-    if errors > 5:
-        print(f"... e mais {errors - 5} erros de processamento")
+    if errors > 0:
+        logger.warning(f"Total de erros de processamento: {errors}/{len(rows)}")
 
-    print(f"Foram processados {len(chats)} chats com sucesso")
+    logger.info(f"Processados {len(chats)} chats com sucesso (erros: {errors})")
     return chats
 
 

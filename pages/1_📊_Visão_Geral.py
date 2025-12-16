@@ -215,12 +215,7 @@ try:
                 z=matrix,
                 x=[f"{h:02d}h" for h in hours],
                 y=days,
-                colorscale=[
-                    [0, COLORS["chart_bg"]],
-                    [0.2, COLORS["info"]],
-                    [0.5, COLORS["warning"]],
-                    [1, COLORS["danger"]],
-                ],
+                colorscale="Viridis",  # Gradiente verde-amarelo-roxo
                 hoverongaps=False,
                 hovertemplate="Dia: %{y}<br>Hora: %{x}<br>Mensagens: %{z}<extra></extra>",
             )

@@ -156,3 +156,4 @@ data/raw/bigquery_deep_analysis.json
 scripts/extract_bigquery_sample.py
 scripts/deep_analysis.py
 docs/technical/lgpd-remediation.md
+data/raw/llm_training_sample.json

@@ -152,20 +152,20 @@ Transcrição:
 
     async def analyze_chat_product(self, transcript: str) -> Dict[str, Any]:
         """Analisa inteligência de produto."""
-        prompt = f"""Você é um analista de produto da EMPRESA, empresa de equipamentos médicos.
+        prompt = f"""Você é um analista de produto de uma empresa de equipamentos.
 Analise a transcrição para identificar interesses e tendências de produto.
 
-CATEGORIAS DE PRODUTO:
-- categoria_a: equipamento_a, ultrassom, equipamento_b, equipamento_c, equipamento_d
-- hof: produto_1, produto_2, fios (Categoria B)
-- categoria_c: equipamento_e, equipamento_f, equipamento_g
+CATEGORIAS (configure conforme seu negócio):
+- categoria_a: produtos do tipo A
+- categoria_b: produtos do tipo B
+- categoria_c: produtos do tipo C
 - indefinido: quando nenhum produto é mencionado ou não é possível identificar
 
 IMPORTANTE: Se não houver produtos mencionados, use category="indefinido".
 
 Retorne um objeto JSON com os seguintes campos:
 - products_mentioned: lista de produtos/tecnologias mencionados (lista vazia se nenhum)
-- category: "categoria_a", "hof", "categoria_c", "misto" ou "indefinido"
+- category: categoria identificada ou "indefinido"
 - interest_level: "alto", "medio" ou "baixo"
 - budget_mentioned: booleano (cliente mencionou orçamento/preço)
 - trends: lista de necessidades ou perguntas específicas do cliente
@@ -176,19 +176,19 @@ Transcrição:
 
     async def analyze_chat_sales(self, transcript: str) -> Dict[str, Any]:
         """Analisa conversão de vendas."""
-        prompt = f"""Você é um analista de vendas para uma equipe SDR de equipamentos médicos.
+        prompt = f"""Você é um analista de vendas para uma equipe comercial.
 Analise a transcrição para avaliar o progresso no funil de vendas.
 
-ESTÁGIOS DO FUNIL SDR:
-- qualificacao: Validando perfil (área de atuação, tipo de negócio)
+ESTÁGIOS DO FUNIL:
+- qualificacao: Validando perfil do cliente
 - apresentacao: Demonstrando soluções e benefícios
 - negociacao: Discutindo preço, condições, objeções
-- fechamento: Agendando demo/visita ou fechando venda
+- fechamento: Agendando próximo passo ou fechando venda
 
 Retorne um objeto JSON com os seguintes campos:
 - funnel_stage: "qualificacao", "apresentacao", "negociacao" ou "fechamento"
 - outcome: "convertido", "perdido" ou "em_andamento"
-- lead_type: "tipo_cliente", "autonomo", "novo_cliente" ou "indefinido"
+- lead_type: tipo de cliente identificado ou "indefinido"
 - rejection_reason: se perdido, o motivo principal (senão null)
 - next_step: próximo item de ação recomendado
 - urgency: "alta", "media" ou "baixa" (urgência do lead)
@@ -199,16 +199,16 @@ Transcrição:
 
     async def analyze_chat_qa(self, transcript: str) -> Dict[str, Any]:
         """Analisa Quality Assurance (QA)."""
-        prompt = f"""Você é um analista de QA para uma equipe SDR de equipamentos médicos.
+        prompt = f"""Você é um analista de QA para uma equipe de vendas.
 Avalie se o agente seguiu o script de qualificação corretamente.
 
-PERGUNTAS-CHAVE DO SCRIPT:
-1. Área de atuação (categoria_a, categoria_b, categoria_c)
-2. Tipo de negócio (tipo_cliente, autonomo, novo_cliente)
-3. Localização/cidade
-4. Já possui equipamentos?
+PERGUNTAS-CHAVE DO SCRIPT (configure conforme seu negócio):
+1. Área de interesse do cliente
+2. Tipo de negócio/perfil
+3. Localização
+4. Situação atual
 5. Orçamento disponível
-6. Prazo para aquisição
+6. Prazo para decisão
 
 Retorne um objeto JSON com os seguintes campos:
 - script_adherence: booleano (seguiu o script de qualificação?)

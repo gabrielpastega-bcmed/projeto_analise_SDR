@@ -144,7 +144,7 @@ class LLMAnalyzer:
             "product": {
                 "products_mentioned": ["Produto A", "Produto B"],
                 "interest_level": "alto",
-                "trends": ["Resultados de marca própria"],
+                "trends": ["Resultados específicos", "Funcionalidade X"],
             },
             "sales": {
                 "funnel_stage": "consideração",

@@ -157,3 +157,9 @@ scripts/extract_bigquery_sample.py
 scripts/deep_analysis.py
 docs/technical/lgpd-remediation.md
 data/raw/llm_training_sample.json
+
+# =======================================================
+# INTERNAL DOCUMENTATION (LOCAL ONLY)
+# =======================================================
+# Internal algorithm documentation - should not be public
+docs/algorithms_guide.md

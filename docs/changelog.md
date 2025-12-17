@@ -7,6 +7,39 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
+## [0.7.0] - 2025-12-17
+
+### Adicionado
+- **Arquitetura para Integração**:
+  - `config/settings.py`: Configurações tipadas (Gemini, BigQuery, Catalog)
+  - `src/context_provider.py`: Interface abstrata para contexto empresarial
+  - `DefaultContextProvider` e `CatalogAPIContextProvider`
+- **Testes**:
+  - `test_context_provider.py`: 10 testes (92% coverage)
+  - `test_ingestion_bq.py`: Testes BigQuery com mocks
+  - `test_batch_analyzer_bq.py`: Testes ETL BigQuery
+  - `test_dashboard_utils.py`: Testes UI (theme, colors)
+  - 30 novos testes adicionados (93 → 123)
+- **Licença**: Apache 2.0
+
+### Alterado
+- **Coverage**: 64% → 83%
+- **CI**: Python 3.12/3.13/3.14 support
+- **main.py**: Agora usa `GeminiClient` diretamente (removeu dependência de `LLMAnalyzer`)
+- **README**: Badges atualizados, stats corrigidos (123 tests, 83% coverage)
+
+### Removido
+- `src/llm_analysis.py` (código mock redundante)
+- `tests/test_llm_analysis.py`
+- Pastas vazias: `src/features/`, `src/visualization/`, `src/data/`, `src/models/`
+
+### Corrigido
+- **CI**: Env vars para testes BigQuery (skip quando módulo não disponível)
+- **Lint**: Erros E402 em imports após `importorskip`
+- **Git History**: Reescrito para remover dados sensíveis (LGPD)
+
+---
+
 ## [0.6.0] - 2025-12-15
 
 ### Adicionado

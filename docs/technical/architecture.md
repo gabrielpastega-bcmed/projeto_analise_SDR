@@ -12,7 +12,7 @@ flowchart TD
         B --> C[models.py]
         C --> D{Análise}
         D --> E[ops_analysis.py]
-        D --> F[llm_analysis.py]
+        D --> F[gemini_client.py]
     end
 
     subgraph Output
@@ -30,7 +30,7 @@ flowchart TD
 1. **Ingestão**: Dados são carregados de JSON ou BigQuery
 2. **Parsing**: Modelos Pydantic validam e estruturam os dados
 3. **Análise Operacional**: Cálculos de TME, TMA, ranking
-4. **Análise Qualitativa**: LLM processa sentimento e produtos
+4. **Análise Qualitativa**: Gemini API processa sentimento e produtos
 5. **Relatório**: Dados agregados para visualização
 6. **Dashboard**: Interface visual com Streamlit
 
@@ -44,8 +44,8 @@ flowchart TD
 | Schemas LLM | `src/llm_schemas.py` | Validação de output LLM |
 | Ingestão | `src/ingestion.py` | Carregamento de dados |
 | Análise Ops | `src/ops_analysis.py` | Métricas quantitativas |
-| Análise LLM (Mock) | `src/llm_analysis.py` | Análise qualitativa (mock) |
 | Gemini Client | `src/gemini_client.py` | Integração Gemini API |
+| Context Provider | `src/context_provider.py` | Interface para contexto empresarial |
 | Batch Analyzer | `src/batch_analyzer.py` | ETL com checkpoint |
 | Relatórios | `src/reporting.py` | Agregação de resultados |
 | Dashboard | `dashboard.py` | Interface visual |

@@ -176,7 +176,7 @@ Transcrição:
 
     async def analyze_chat_sales(self, transcript: str) -> Dict[str, Any]:
         """Analisa conversão de vendas."""
-        prompt = f"""Você é um analista de vendas para uma equipe comercial.
+        prompt = f"""Você é um analista de vendas para uma equipe comercial.  # type: ignore[return-value]
 Analise a transcrição para avaliar o progresso no funil de vendas.
 
 ESTÁGIOS DO FUNIL:

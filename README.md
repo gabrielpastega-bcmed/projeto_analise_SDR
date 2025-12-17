@@ -1,9 +1,10 @@
 # Projeto Análise SDR
 
-[![CI](https://github.com/gabrielpastega-empresa/projeto_analise_SDR/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrielpastega-empresa/projeto_analise_SDR/actions/workflows/ci.yml)
-[![codecov](https://codecov.io/gh/gabrielpastega-empresa/projeto_analise_SDR/graph/badge.svg)](https://codecov.io/gh/gabrielpastega-empresa/projeto_analise_SDR)
+[![CI](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue.svg)](https://www.python.org/downloads/)
+[![Coverage](https://img.shields.io/badge/coverage-83%25-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-123%20passing-brightgreen.svg)]()
 
 Sistema de análise de conversas de atendimento (chat logs) para extração de insights de **CX**, **Inteligência de Produto**, **Performance Operacional** e **Conversão de Vendas**.
 
@@ -41,7 +42,7 @@ O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
 
 ```bash
 # Clone o repositório
-git clone https://github.com/gabrielpastega-empresa/projeto_analise_SDR.git
+git clone https://github.com/gabrielpastega-bcmed/projeto_analise_SDR.git
 cd projeto_analise_SDR
 
 # Instale as dependências com Poetry
@@ -66,6 +67,9 @@ O dashboard estará disponível em `http://localhost:8501`.
 # Executar testes
 poetry run pytest
 
+# Executar com cobertura
+poetry run pytest --cov=src --cov-report=term-missing
+
 # Verificar linting
 poetry run ruff check .
 
@@ -87,13 +91,16 @@ projeto_analise_SDR/
 │   ├── models.py           # Modelos Pydantic para parsing de dados
 │   ├── ingestion.py        # Carregamento de dados (JSON/BigQuery)
 │   ├── ops_analysis.py     # Análise operacional (TMA, TME)
-│   ├── llm_analysis.py     # Análise qualitativa (LLM mock)
 │   ├── gemini_client.py    # Cliente Gemini API com validação
 │   ├── llm_schemas.py      # Schemas Pydantic para output LLM
 │   ├── batch_analyzer.py   # ETL com checkpoint e rate limit
 │   ├── dashboard_utils.py  # Utilitários do dashboard
+│   ├── context_provider.py # Interface para contexto empresarial
+│   ├── logging_config.py   # Configuração centralizada de logs
 │   └── reporting.py        # Agregação e relatórios
-├── tests/                  # Testes unitários (100 testes, 70% cobertura)
+├── config/                 # Configurações
+│   └── settings.py         # Settings tipadas (Gemini, BigQuery)
+├── tests/                  # Testes unitários (123 testes, 83% cobertura)
 ├── data/raw/               # Dados de exemplo
 ├── .github/workflows/      # CI/CD com GitHub Actions
 └── pyproject.toml          # Configuração do projeto
@@ -102,7 +109,7 @@ projeto_analise_SDR/
 ## 🔧 Configuração
 
 O projeto usa as seguintes ferramentas:
-- **Python 3.12+**
+- **Python 3.12+** (compatível com 3.13 e 3.14)
 - **Poetry** para gerenciamento de dependências
 - **Streamlit** para o dashboard
 - **Pydantic** para validação de dados
@@ -111,20 +118,30 @@ O projeto usa as seguintes ferramentas:
 - **ruff** para linting
 - **mypy** para type checking
 
-### Variáveis de Ambiente (Opcional - BigQuery)
+### Variáveis de Ambiente
 
 ```bash
+# Gemini API (Análise LLM)
+GEMINI_API_KEY=sua-api-key
+
+# BigQuery (Opcional - para dados em produção)
 BIGQUERY_PROJECT_ID=seu-projeto
 BIGQUERY_DATASET=seu-dataset
 BIGQUERY_TABLE=sua-tabela
 GOOGLE_APPLICATION_CREDENTIALS=caminho/para/credentials.json
+
+# Configuração de Análise
 ANALYSIS_DAYS=7
 ```
 
-## 📜 Changelog
+## 📊 Qualidade do Código
 
-Veja o histórico completo de versões na [documentação](https://gabrielpastega-empresa.github.io/projeto_analise_SDR/changelog/).
+- ✅ **123 testes unitários** com **83% de cobertura**
+- ✅ **CI/CD** automatizado (GitHub Actions)
+- ✅ **Type hints** com validação mypy
+- ✅ **Linting** com ruff
+- ✅ **Pre-commit hooks** para qualidade
 
 ## 📄 Licença
 
-Este projeto está licenciado sob os termos da licença incluída no arquivo LICENSE.
+Este projeto está licenciado sob a [Apache License 2.0](LICENSE).

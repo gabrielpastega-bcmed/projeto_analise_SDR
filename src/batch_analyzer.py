@@ -11,7 +11,7 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterator, List, Optional, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Union, cast
 
 from config.settings import settings
 from src.gemini_client import GeminiClient
@@ -216,7 +216,7 @@ class BatchAnalyzer:
 
         # Detecta se chats é lista ou generator
         is_list = isinstance(chats, list)
-        total = len(chats) if is_list else None
+        total = len(cast(List[Chat], chats)) if is_list else None
 
         # Converte para iterável se necessário
         chat_iter = iter(chats)

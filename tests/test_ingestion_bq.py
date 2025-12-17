@@ -4,6 +4,9 @@ from unittest.mock import patch
 
 import pytest
 
+pytest.importorskip("google.cloud.bigquery")
+from src.ingestion import load_chats_from_bigquery  # noqa: E402
+
 
 class TestLoadChatsFromBigQuery:
     """Tests for load_chats_from_bigquery."""
@@ -15,7 +18,6 @@ class TestLoadChatsFromBigQuery:
 
     def test_load_chats_from_bigquery_with_days(self, mock_bq_client, monkeypatch):
         """Test loading chats with days parameter."""
-        from src.ingestion import load_chats_from_bigquery
 
         # Mock environment
         monkeypatch.setenv("BIGQUERY_PROJECT_ID", "test-project")
@@ -42,7 +44,6 @@ class TestLoadChatsFromBigQuery:
 
     def test_load_chats_from_bigquery_with_limit(self, mock_bq_client, monkeypatch):
         """Test loading with limit parameter."""
-        from src.ingestion import load_chats_from_bigquery
 
         monkeypatch.setenv("BIGQUERY_PROJECT_ID", "test-project")
         monkeypatch.setenv("BIGQUERY_DATASET_ID", "test-dataset")

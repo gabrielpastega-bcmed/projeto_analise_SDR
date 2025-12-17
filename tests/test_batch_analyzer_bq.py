@@ -5,7 +5,8 @@ from unittest.mock import patch
 
 import pytest
 
-from src.batch_analyzer import BatchAnalyzer
+pytest.importorskip("google.cloud.bigquery")
+from src.batch_analyzer import BatchAnalyzer  # noqa: E402
 
 
 class TestBatchAnalyzerBQ:

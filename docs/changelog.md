@@ -151,4 +151,4 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ---
 
-> **Nota:** Apenas as últimas 5 versões são exibidas. Para histórico completo, consulte as [Releases no GitHub](https://github.com/gabrielpastega-empresa/projeto_analise_SDR/releases).
+> **Nota:** Apenas as últimas 5 versões são exibidas. Para histórico completo, consulte as [Releases no GitHub](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR/releases).

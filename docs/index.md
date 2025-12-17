@@ -34,7 +34,7 @@ O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
 
     ```bash
     # Clone o repositório
-    git clone https://github.com/gabrielpastega-empresa/projeto_analise_SDR.git
+    git clone https://github.com/gabrielpastega-bcmed/projeto_analise_SDR.git
     cd projeto_analise_SDR
 
     # Instale as dependências
@@ -96,5 +96,5 @@ O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
 
 ## 🔗 Links Úteis
 
-- [GitHub](https://github.com/gabrielpastega-empresa/projeto_analise_SDR)
+- [GitHub](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR)
 - [Dashboard](http://localhost:8501) (local)

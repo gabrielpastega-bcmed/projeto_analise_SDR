@@ -101,21 +101,16 @@ Ranking de agentes por performance.
 
 ---
 
-## 4. Análise Qualitativa (`src/llm_analysis.py`)
+## 4. Análise Qualitativa (`src/gemini_client.py`)
 
-Análise usando LLM (atualmente **mockada**).
+Cliente para Google Gemini API com validação Pydantic.
 
-### Prompts
+### Features
 
-```python
-PROMPT_CX = """
-Analyze the following chat transcript for Customer Experience (CX).
-Return a JSON object with:
-- sentiment: "positive", "neutral", or "negative"
-- humanization_score: integer from 1 to 5
-- resolution_status: "resolved", "unresolved", or "pending"
-"""
-```
+- **Validação de Schema**: Output estruturado via Pydantic (`src/llm_schemas.py`)
+- **Rate Limiting**: 240 RPM (80% do Tier 1 Gemini)
+- **Timeout**: 60s configurável
+- **Retry Logic**: JSON parsing automático com fallback
 
 ### Retorno
 
@@ -124,6 +119,7 @@ Return a JSON object with:
     "cx": {
         "sentiment": "neutral",
         "humanization_score": 4,
+        "nps_prediction": 8,
         "resolution_status": "resolved"
     },
     "product": {
@@ -132,13 +128,18 @@ Return a JSON object with:
     },
     "sales": {
         "outcome": "in_progress",
+        "funnel_stage": "discovery",
         "rejection_reason": None
+    },
+    "qa": {
+        "script_adherence": True,
+        "key_questions_asked": ["orçamento", "prazo"]
     }
 }
 ```
 
-!!! warning "Mock"
-    Para usar LLM real, configure a API key e descomente o código em `_call_llm()`.
+!!! info "Configuração"
+    Defina `GEMINI_API_KEY` no arquivo `.env`
 
 ---
 

@@ -54,7 +54,7 @@ Consulte os "Motivos de Perda" no dashboard para entender melhor.
 
 ### Como instalo o projeto?
 ```bash
-git clone https://github.com/gabrielpastega-empresa/projeto_analise_SDR.git
+git clone https://github.com/gabrielpastega-bcmed/projeto_analise_SDR.git
 cd projeto_analise_SDR
 poetry install
 ```
@@ -110,4 +110,4 @@ Verifique se o arquivo `data/raw/exemplo.json` existe e está no formato correto
 
 ## Contato
 
-Para outras dúvidas, abra uma [Issue no GitHub](https://github.com/gabrielpastega-empresa/projeto_analise_SDR/issues).
+Para outras dúvidas, abra uma [Issue no GitHub](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR/issues).

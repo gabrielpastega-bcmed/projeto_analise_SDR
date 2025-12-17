@@ -6,7 +6,7 @@ Obrigado por considerar contribuir para este projeto! 🎉
 
 ```bash
 # Clone o repositório
-git clone https://github.com/gabrielpastega-empresa/projeto_analise_SDR.git
+git clone https://github.com/gabrielpastega-bcmed/projeto_analise_SDR.git
 cd projeto_analise_SDR
 
 # Instale as dependências
@@ -116,4 +116,4 @@ projeto_analise_SDR/
 
 ## ❓ Dúvidas
 
-Abra uma [Issue](https://github.com/gabrielpastega-empresa/projeto_analise_SDR/issues) para perguntas ou sugestões.
+Abra uma [Issue](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR/issues) para perguntas ou sugestões.

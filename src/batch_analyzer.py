@@ -13,7 +13,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
+from config.settings import settings
 from src.gemini_client import GeminiClient
+from src.llm_cache import LLMCache
 from src.logging_config import get_logger
 from src.models import Chat
 
@@ -88,7 +90,15 @@ class BatchAnalyzer:
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self.rate_limit = rate_limit
         self._request_times: List[float] = []
-        logger.info(f"BatchAnalyzer inicializado (rate_limit={rate_limit} RPM)")
+
+        # Initialize LLM cache (safe: disabled by default if Redis unavailable)
+        self.cache = LLMCache(
+            redis_url=settings.cache.redis_url,
+            ttl_seconds=settings.cache.ttl_seconds,
+            enabled=settings.cache.enabled,
+        )
+
+        logger.info(f"BatchAnalyzer inicializado (rate_limit={rate_limit} RPM, cache={self.cache.enabled})")
 
     async def _wait_for_rate_limit(self) -> None:
         """Aguarda se necessário para respeitar o rate limit."""
@@ -119,6 +129,25 @@ class BatchAnalyzer:
         import time
 
         start_time = time.time()
+
+        # Try cache first (safe: returns None if disabled or fails)
+        try:
+            cached_result = self.cache.get(chat.id) if self.cache else None
+            if cached_result:
+                elapsed_ms = int((time.time() - start_time) * 1000)
+                logger.info(f"Cache HIT for chat {chat.id} ({elapsed_ms}ms)")
+                return {
+                    "chat_id": chat.id,
+                    "agent": chat.agent.name if chat.agent else "Sem Agente",
+                    "analysis": cached_result,
+                    "timestamp": datetime.now().isoformat(),
+                    "processing_time_ms": elapsed_ms,
+                    "from_cache": True,
+                }
+        except Exception as e:
+            # Cache failure should not break analysis - just log and continue
+            logger.warning(f"Cache GET failed for chat {chat.id}: {e}")
+
         await self._wait_for_rate_limit()
 
         transcript = format_transcript(chat)
@@ -134,6 +163,13 @@ class BatchAnalyzer:
             results = await self.client.analyze_chat_full(transcript)
             elapsed_ms = int((time.time() - start_time) * 1000)
 
+            # Try to cache result (safe: fails silently)
+            try:
+                if self.cache:
+                    self.cache.set(chat.id, results)
+            except Exception as e:
+                logger.warning(f"Cache SET failed for chat {chat.id}: {e}")
+
             logger.info(
                 f"Chat {chat.id} analisado em {elapsed_ms}ms (agent={chat.agent.name if chat.agent else 'N/A'})"
             )
@@ -144,6 +180,7 @@ class BatchAnalyzer:
                 "analysis": results,
                 "timestamp": datetime.now().isoformat(),
                 "processing_time_ms": elapsed_ms,
+                "from_cache": False,
             }
         except Exception as e:
             elapsed_ms = int((time.time() - start_time) * 1000)

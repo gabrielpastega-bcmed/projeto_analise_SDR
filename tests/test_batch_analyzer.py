@@ -14,6 +14,14 @@ import pytz
 from src.batch_analyzer import BatchAnalyzer, format_transcript, get_previous_week_range
 from src.models import Chat, Contact, Message, MessageSender
 
+
+@pytest.fixture(autouse=True)
+def disable_cache_for_tests(monkeypatch):
+    """Disable Redis cache for tests to ensure test isolation."""
+    monkeypatch.setenv("REDIS_ENABLED", "false")
+    yield
+
+
 # ============================================================
 # Fixtures
 # ============================================================

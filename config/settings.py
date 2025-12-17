@@ -44,12 +44,22 @@ class CatalogSettings:
 
 
 @dataclass
+class CacheSettings:
+    """Configurações de cache LLM (Redis)."""
+
+    enabled: bool = field(default_factory=lambda: os.getenv("REDIS_ENABLED", "true").lower() == "true")
+    redis_url: str = field(default_factory=lambda: os.getenv("REDIS_URL", "redis://localhost:6379/0"))
+    ttl_seconds: int = field(default_factory=lambda: int(os.getenv("REDIS_TTL", "86400")))
+
+
+@dataclass
 class Settings:
     """Configurações globais do projeto."""
 
     gemini: GeminiSettings = field(default_factory=GeminiSettings)
     bigquery: BigQuerySettings = field(default_factory=BigQuerySettings)
     catalog: CatalogSettings = field(default_factory=CatalogSettings)
+    cache: CacheSettings = field(default_factory=CacheSettings)
 
     # Configurações gerais
     log_level: str = field(default_factory=lambda: os.getenv("LOG_LEVEL", "INFO"))

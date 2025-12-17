@@ -1,9 +1,16 @@
 """Tests for BatchAnalyzer BigQuery interactions."""
 
+import os
 from datetime import datetime
 from unittest.mock import patch
 
 import pytest
+
+# Set default environment variables for testing (before imports)
+os.environ.setdefault("GEMINI_API_KEY", "test-key-12345")
+os.environ.setdefault("BIGQUERY_PROJECT_ID", "test-project")
+os.environ.setdefault("BIGQUERY_DATASET_ID", "test-dataset")
+os.environ.setdefault("BIGQUERY_TABLE_ID", "test-table")
 
 pytest.importorskip("google.cloud.bigquery")
 from src.batch_analyzer import BatchAnalyzer  # noqa: E402

@@ -456,9 +456,7 @@ class BatchAnalyzer:
         total_inserted = 0
         total_chunks = (len(rows_to_insert) + chunk_size - 1) // chunk_size
 
-        logger.info(
-            f"Salvando {len(rows_to_insert)} resultados em {total_chunks} chunks " f"de até {chunk_size} linhas"
-        )
+        logger.info(f"Salvando {len(rows_to_insert)} resultados em {total_chunks} chunks de até {chunk_size} linhas")
 
         for i in range(0, len(rows_to_insert), chunk_size):
             chunk = rows_to_insert[i : i + chunk_size]

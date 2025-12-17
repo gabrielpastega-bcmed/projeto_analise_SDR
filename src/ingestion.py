@@ -270,7 +270,7 @@ def stream_chats_from_bigquery(
                     logger.warning(f"Erro ao processar chat {item.get('id', 'desconhecido')}: {e}")
 
     if total_errors > 0:
-        logger.warning(f"Streaming concluído: {total_processed} chats processados, " f"{total_errors} erros")
+        logger.warning(f"Streaming concluído: {total_processed} chats processados, {total_errors} erros")
     else:
         logger.info(f"Streaming concluído: {total_processed} chats processados")
 

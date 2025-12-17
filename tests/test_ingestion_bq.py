@@ -7,8 +7,8 @@ import pytest
 
 # Set default environment variables for testing (before imports)
 os.environ.setdefault("BIGQUERY_PROJECT_ID", "test-project")
-os.environ.setdefault("BIGQUERY_DATASET_ID", "test-dataset")
-os.environ.setdefault("BIGQUERY_TABLE_ID", "test-table")
+os.environ.setdefault("BIGQUERY_DATASET", "test-dataset")
+os.environ.setdefault("BIGQUERY_TABLE", "test-table")
 
 pytest.importorskip("google.cloud.bigquery")
 from src.ingestion import load_chats_from_bigquery  # noqa: E402

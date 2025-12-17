@@ -163,3 +163,9 @@ data/raw/llm_training_sample.json
 # =======================================================
 # Internal algorithm documentation - should not be public
 docs/algorithms_guide.md
+
+# =======================================================
+# TEST ARTIFACTS (TEMPORARY)
+# =======================================================
+test_output.txt
+*_output.txt

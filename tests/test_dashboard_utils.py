@@ -184,3 +184,56 @@ class TestClassifyLeadQualification:
         # Primeira tag matching ganha
         tags = ["Perfil Qualificado", "Fora de perfil"]
         assert classify_lead_qualification(tags) == "qualificado"
+
+
+class TestThemeAndColors:
+    """Tests for UI helper functions."""
+
+    def test_get_theme_mode_default(self, monkeypatch):
+        """Test default theme mode."""
+        from src import dashboard_utils
+
+        # Mock streamlit
+        class MockSt:
+            def get_option(self, key):
+                return "light"
+
+        monkeypatch.setattr(dashboard_utils, "st", MockSt())
+        assert dashboard_utils.get_theme_mode() == "light"
+
+    def test_get_theme_mode_exception(self, monkeypatch):
+        """Test theme mode fallback on exception."""
+        from src import dashboard_utils
+
+        class MockSt:
+            def get_option(self, key):
+                raise Exception("Error")
+
+        monkeypatch.setattr(dashboard_utils, "st", MockSt())
+        assert dashboard_utils.get_theme_mode() == "dark"
+
+    def test_get_colors_dark(self, monkeypatch):
+        """Test color palette for dark mode."""
+        from src import dashboard_utils
+
+        class MockSt:
+            def get_option(self, key):
+                return "dark"
+
+        monkeypatch.setattr(dashboard_utils, "st", MockSt())
+        colors = dashboard_utils.get_colors()
+        assert colors["primary"] == "#6366f1"
+        assert colors["text"] == "#e0e0e0"
+
+    def test_get_colors_light(self, monkeypatch):
+        """Test color palette for light mode."""
+        from src import dashboard_utils
+
+        class MockSt:
+            def get_option(self, key):
+                return "light"
+
+        monkeypatch.setattr(dashboard_utils, "st", MockSt())
+        colors = dashboard_utils.get_colors()
+        assert colors["primary"] == "#4f46e5"
+        assert colors["text"] == "#1f2937"

@@ -112,3 +112,102 @@ class TestGetDataSource:
         result = get_data_source()
         assert isinstance(result, str)
         assert result in ["bigquery", "json"]
+
+
+class TestLoadResult:
+    """Testes para a classe LoadResult."""
+
+    def test_default_values(self):
+        """Testa valores padrão."""
+        from src.ingestion import LoadResult
+
+        result = LoadResult()
+        assert result.chats == []
+        assert result.total_rows == 0
+        assert result.success_count == 0
+        assert result.error_count == 0
+        assert result.error_samples == []
+
+    def test_success_rate_no_rows(self):
+        """Testa success_rate com zero rows."""
+        from src.ingestion import LoadResult
+
+        result = LoadResult(total_rows=0)
+        # Quando não há rows, retorna 1.0 (100% sucesso)
+        assert result.success_rate == 1.0
+
+    def test_success_rate_with_rows(self):
+        """Testa success_rate com rows."""
+        from src.ingestion import LoadResult
+
+        result = LoadResult(total_rows=100, success_count=75)
+        assert result.success_rate == 0.75
+
+    def test_has_errors_false(self):
+        """Testa has_errors quando não há erros."""
+        from src.ingestion import LoadResult
+
+        result = LoadResult(error_count=0)
+        assert result.has_errors is False
+
+    def test_has_errors_true(self):
+        """Testa has_errors quando há erros."""
+        from src.ingestion import LoadResult
+
+        result = LoadResult(error_count=5)
+        assert result.has_errors is True
+
+
+class TestLoadChatsFromJson:
+    """Testes para load_chats_from_json."""
+
+    def test_load_valid_json(self, tmp_path):
+        """Testa carregamento de JSON válido."""
+        from src.ingestion import load_chats_from_json
+
+        json_data = [
+            {
+                "id": "chat1",
+                "number": 1,
+                "channel": "whatsapp",
+                "status": "closed",
+                "contact": {"id": "c1", "name": "Test", "email": "test@test.com"},
+                "agent": {"id": "a1", "name": "Agent", "email": "agent@company.com"},
+                "messages": [
+                    {
+                        "id": "msg1",
+                        "chatId": "chat1",
+                        "body": "Hello",
+                        "time": "2025-01-01T10:00:00",
+                        "type": "text",
+                    }
+                ],
+            }
+        ]
+        json_file = tmp_path / "test.json"
+        import json
+
+        json_file.write_text(json.dumps(json_data))
+
+        chats = load_chats_from_json(str(json_file))
+        assert len(chats) == 1
+        assert chats[0].id == "chat1"
+
+    def test_load_empty_json(self, tmp_path):
+        """Testa carregamento de JSON vazio."""
+        from src.ingestion import load_chats_from_json
+
+        json_file = tmp_path / "empty.json"
+        json_file.write_text("[]")
+
+        chats = load_chats_from_json(str(json_file))
+        assert len(chats) == 0
+
+    def test_load_nonexistent_file(self):
+        """Testa carregamento de arquivo inexistente."""
+        import pytest
+
+        from src.ingestion import load_chats_from_json
+
+        with pytest.raises(FileNotFoundError):
+            load_chats_from_json("nonexistent.json")

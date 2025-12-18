@@ -165,6 +165,18 @@ data/raw/llm_training_sample.json
 docs/algorithms_guide.md
 
 # =======================================================
+# AI & INTERNAL PROCESSES (PROPRIETARY - DO NOT SHARE)
+# =======================================================
+# AI assistant workflow guidelines
+.agent/project-guidelines.md
+
+# Internal development guidelines
+docs/project-guidelines.md
+
+# Internal process documentation
+docs/internal-*.md
+
+# =======================================================
 # TEST ARTIFACTS (TEMPORARY)
 # =======================================================
 test_output.txt

@@ -11,7 +11,7 @@ import asyncio
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, Iterator, List, Optional, Union, cast
 
 from config.settings import settings
 from src.gemini_client import GeminiClient
@@ -195,16 +195,16 @@ class BatchAnalyzer:
 
     async def run_batch(
         self,
-        chats: List[Chat],
+        chats: Union[List[Chat], Iterator[Chat]],  # Aceita list OU generator
         batch_size: int = 1,  # Processamento sequencial por padrão
         progress_callback: Optional[Callable[[int, int], None]] = None,
         checkpoint_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> List[Dict[str, Any]]:
         """
-        Processa uma lista de chats sequencialmente com rate limiting.
+        Processa uma lista ou generator de chats sequencialmente com rate limiting.
 
         Args:
-            chats: Lista de chats a processar.
+            chats: Lista ou Iterator/Generator de chats a processar.
             batch_size: Ignorado (mantido para compatibilidade). Sempre processa 1 por vez.
             progress_callback: Função para reportar progresso (current, total).
             checkpoint_callback: Função para salvar progresso incremental.
@@ -213,9 +213,18 @@ class BatchAnalyzer:
             Lista de resultados de análise.
         """
         results = []
-        total = len(chats)
 
-        for i, chat in enumerate(chats):
+        # Detecta se chats é lista ou generator
+        is_list = isinstance(chats, list)
+        total = len(cast(List[Chat], chats)) if is_list else None
+
+        # Converte para iterável se necessário
+        chat_iter = iter(chats)
+
+        i = 0
+        for chat in chat_iter:
+            i += 1
+
             # Rate limiting antes de cada chat
             await self._wait_for_rate_limit()
 
@@ -229,9 +238,15 @@ class BatchAnalyzer:
 
             # Progresso
             if progress_callback:
-                progress_callback(i + 1, total)
+                if total:
+                    progress_callback(i, total)
+                else:
+                    progress_callback(i, i)  # Generator mode: current = total
 
-            logger.info(f"Chat {i + 1}/{total} processado: {chat.id}")
+            if total:
+                logger.info(f"Chat {i}/{total} processado: {chat.id}")
+            else:
+                logger.info(f"Chat {i} processado: {chat.id} (streaming mode)")
 
         # Estatísticas finais
         success_count = sum(1 for r in results if "error" not in r)
@@ -240,7 +255,7 @@ class BatchAnalyzer:
         avg_time_ms = total_time_ms / len(results) if results else 0
 
         logger.info(
-            f"Batch concluído: {success_count}/{total} sucesso, "
+            f"Batch concluído: {success_count}/{i} sucesso, "
             f"{error_count} erros, "
             f"tempo médio: {avg_time_ms:.0f}ms, "
             f"tempo total: {total_time_ms / 1000:.1f}s"
@@ -374,14 +389,16 @@ class BatchAnalyzer:
         results: List[Dict[str, Any]],
         week_start: datetime,
         week_end: datetime,
+        chunk_size: int = 500,
     ) -> int:
         """
-        Salva os resultados de análise no BigQuery.
+        Salva os resultados de análise no BigQuery com chunked writes.
 
         Args:
             results: Lista de resultados da análise.
             week_start: Início da semana analisada.
             week_end: Fim da semana analisada.
+            chunk_size: Tamanho do chunk para inserts (default: 500).
 
         Returns:
             Número de linhas inseridas.
@@ -391,6 +408,7 @@ class BatchAnalyzer:
         client = bigquery.Client()
         table_id = self._get_bigquery_table_id()
 
+        # Prepara todas as linhas
         rows_to_insert = []
         for r in results:
             if "error" in r:
@@ -434,13 +452,27 @@ class BatchAnalyzer:
             print("Nenhum resultado valido para salvar.")
             return 0
 
-        errors = client.insert_rows_json(table_id, rows_to_insert)
-        if errors:
-            print(f"Erros ao inserir: {errors}")
-            return 0
+        # Insere em chunks para evitar limite de 10MB do BigQuery
+        total_inserted = 0
+        total_chunks = (len(rows_to_insert) + chunk_size - 1) // chunk_size
 
-        print(f"[OK] {len(rows_to_insert)} resultados salvos no BigQuery")
-        return len(rows_to_insert)
+        logger.info(f"Salvando {len(rows_to_insert)} resultados em {total_chunks} chunks de até {chunk_size} linhas")
+
+        for i in range(0, len(rows_to_insert), chunk_size):
+            chunk = rows_to_insert[i : i + chunk_size]
+            chunk_num = (i // chunk_size) + 1
+
+            logger.info(f"Inserindo chunk {chunk_num}/{total_chunks} ({len(chunk)} linhas)...")
+
+            errors = client.insert_rows_json(table_id, chunk)
+            if errors:
+                logger.error(f"Erros ao inserir chunk {chunk_num}: {errors}")
+            else:
+                total_inserted += len(chunk)
+                logger.info(f"Chunk {chunk_num} inserido com sucesso")
+
+        print(f"[OK] {total_inserted}/{len(rows_to_insert)} resultados salvos no BigQuery")
+        return total_inserted
 
     def load_from_bigquery(
         self,

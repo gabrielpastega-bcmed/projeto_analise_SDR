@@ -16,10 +16,14 @@ from src.models import Chat, Contact, Message, MessageSender
 
 
 @pytest.fixture(autouse=True)
-def disable_cache_for_tests(monkeypatch):
-    """Disable Redis cache for tests to ensure test isolation."""
-    monkeypatch.setenv("REDIS_ENABLED", "false")
-    yield
+def mock_llm_cache():
+    """Mock LLMCache to prevent cache interference in tests."""
+    with patch("src.batch_analyzer.LLMCache") as mock:
+        instance = MagicMock()
+        instance.enabled = False
+        instance.get.return_value = None
+        mock.return_value = instance
+        yield instance
 
 
 # ============================================================

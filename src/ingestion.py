@@ -7,7 +7,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, List, MutableMapping, Optional
+from typing import Any, Iterator, List, MutableMapping, Optional
 
 from dotenv import load_dotenv
 from google.cloud import bigquery
@@ -142,6 +142,137 @@ def load_chats_from_json(file_path: str) -> List[Chat]:
             continue
 
     return chats
+
+
+def stream_chats_from_bigquery(
+    days: Optional[int] = None,
+    limit: Optional[int] = None,
+    lightweight: bool = True,
+    page_size: int = 1000,
+) -> Iterator[Chat]:
+    """
+    Streaming generator para carregar chats do BigQuery sem OOM.
+
+    Carrega dados em páginas e yielda chats um por vez, evitando carregar
+    todo o dataset na memória. Ideal para processar grandes volumes.
+
+    Args:
+        days: Número de dias retroativos para a busca.
+        limit: Número máximo de chats a serem retornados.
+        lightweight: Se True, exclui o campo 'messages' para carregamento mais rápido.
+        page_size: Tamanho da página para paginação (default: 1000).
+
+    Yields:
+        Objetos Chat individuais, com dados sensíveis anonimizados.
+
+    Example:
+        >>> for chat in stream_chats_from_bigquery(days=7, lightweight=True):
+        ...     process_chat(chat)
+    """
+    # Obtém a configuração a partir das variáveis de ambiente
+    project_id = os.getenv("BIGQUERY_PROJECT_ID")
+    dataset = os.getenv("BIGQUERY_DATASET")
+    table = os.getenv("BIGQUERY_TABLE")
+    credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+    default_days = int(os.getenv("ANALYSIS_DAYS", "7"))
+
+    # Validação da configuração
+    if not all([project_id, dataset, table]):
+        raise ValueError(
+            "Configuração do BigQuery incompleta. "
+            "Defina BIGQUERY_PROJECT_ID, BIGQUERY_DATASET e BIGQUERY_TABLE "
+            "no seu arquivo .env."
+        )
+
+    # Define o caminho das credenciais para a biblioteca do Google Cloud
+    if credentials_path:
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = credentials_path
+
+    # Inicializa o cliente do BigQuery
+    client = bigquery.Client(project=project_id)
+
+    # Calcula o filtro de data
+    analysis_days = days if days is not None else default_days
+    start_date = datetime.now() - timedelta(days=analysis_days)
+    start_date_str = start_date.strftime("%Y-%m-%d")
+
+    # Constrói a query SQL
+    if lightweight:
+        fields = """
+            id, number, channel, contact, agent, pastAgents,
+            firstMessageDate, lastMessageDate, messagesCount,
+            status, closed, waitingTime, tags,
+            withBot, unreadMessages, octavia_analysis
+        """
+        query = f"""
+        SELECT
+            {fields}
+        FROM `{project_id}.{dataset}.{table}`
+        WHERE DATE(firstMessageDate) >= @start_date
+        ORDER BY firstMessageDate DESC
+        """
+    else:
+        query = f"""
+        SELECT *
+        FROM `{project_id}.{dataset}.{table}`
+        WHERE DATE(firstMessageDate) >= @start_date
+        ORDER BY firstMessageDate DESC
+        """  # nosec B608
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("start_date", "STRING", start_date_str),
+        ]
+    )
+
+    # Adiciona o limite à query, se especificado
+    effective_limit = limit if limit else 5000
+    query += f"\nLIMIT {effective_limit}"
+
+    logger.info(
+        "Iniciando consulta BigQuery (streaming)",
+        extra={
+            "table": f"{project_id}.{dataset}.{table}",
+            "start_date": start_date_str,
+            "days": analysis_days,
+            "mode": "lightweight" if lightweight else "full",
+            "limit": effective_limit,
+            "page_size": page_size,
+        },
+    )
+
+    # Executa a query com paginação
+    query_job = client.query(query, job_config=job_config)
+
+    # Itera sobre as páginas de resultados
+    total_processed = 0
+    total_errors = 0
+
+    for page in query_job.result(page_size=page_size).pages:
+        for row in page:
+            try:
+                item = dict(row)
+
+                # Em modo lightweight, adicionar lista vazia de mensagens
+                if lightweight and "messages" not in item:
+                    item["messages"] = []
+
+                # Etapa de anonimização antes da validação
+                anonymized_item = _anonymize_chat_data(item)
+                chat = Chat(**anonymized_item)
+
+                total_processed += 1
+                yield chat
+
+            except Exception as e:
+                total_errors += 1
+                if total_errors <= 5:
+                    logger.warning(f"Erro ao processar chat {item.get('id', 'desconhecido')}: {e}")
+
+    if total_errors > 0:
+        logger.warning(f"Streaming concluído: {total_processed} chats processados, {total_errors} erros")
+    else:
+        logger.info(f"Streaming concluído: {total_processed} chats processados")
 
 
 def load_chats_from_bigquery(

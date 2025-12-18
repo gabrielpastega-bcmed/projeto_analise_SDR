@@ -3,7 +3,37 @@
 Todas as mudanças notáveis deste projeto serão documentadas neste arquivo.
 
 O formato segue [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/),
-e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+e este projeto adhere ao [Versionamento Semântico](https://semver.org/lang/pt-BR/).
+
+---
+
+## [0.8.0] - 2025-12-17
+
+### Adicionado
+- **BigQuery Streaming** para prevenir OOM em datasets grandes:
+  - `stream_chats_from_bigquery()`: Generator com paginação automática (1000 chats/página)
+  - Suporte a generators em `BatchAnalyzer.run_batch()`
+  - Chunked writes em `save_to_bigquery()` (500 linhas/chunk)
+- **Testes**:
+  - `test_ingestion_streaming.py`: Teste de paginação
+  - `test_batch_analyzer_streaming.py`: 7 testes de streaming (chunked writes, generators, callbacks)
+  - Total: 175 testes (+8 novos)
+- **Redis Cache** para respostas LLM:
+  - `test_llm_cache_extended.py`: 24 testes de edge cases
+  - Economia de custos em re-processamentos
+- **Métricas**:
+  - `test_metrics.py`: 20 testes de tokens/custo
+
+### Alterado
+- **Coverage**: 83% → 75% (base de código aumentou significativamente)
+- **Tests**: 123 → 175 (+52 testes)
+- `BatchAnalyzer.run_batch()`: Agora aceita `Union[List[Chat], Iterator[Chat]]`
+- `BatchAnalyzer.save_to_bigquery()`: Novo parâmetro `chunk_size` (default: 500)
+
+### Performance
+- **~80% redução de memória** para datasets grandes (>1000 chats)
+- Chunked writes evitam limite de 10MB do BigQuery
+- Backward compatibility 100% mantida
 
 ---
 

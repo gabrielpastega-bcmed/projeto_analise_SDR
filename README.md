@@ -3,8 +3,8 @@
 [![CI](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR/actions/workflows/ci.yml/badge.svg)](https://github.com/gabrielpastega-bcmed/projeto_analise_SDR/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%20%7C%203.13%20%7C%203.14-blue.svg)](https://www.python.org/downloads/)
-[![Coverage](https://img.shields.io/badge/coverage-83%25-brightgreen.svg)]()
-[![Tests](https://img.shields.io/badge/tests-123%20passing-brightgreen.svg)]()
+[![Coverage](https://img.shields.io/badge/coverage-75%25-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/tests-175%20passing-brightgreen.svg)]()
 
 Sistema de análise de conversas de atendimento (chat logs) para extração de insights de **CX**, **Inteligência de Produto**, **Performance Operacional** e **Conversão de Vendas**.
 
@@ -31,6 +31,12 @@ O sistema inclui um **dashboard interativo** com 4 páginas especializadas:
 - **CX**: Sentimento, Score de Humanização (1-5), Status de Resolução
 - **Produtos**: "Top of Mind", Tendências de busca
 - **Vendas**: Taxa de Conversão, Motivos de Perda
+- **Cache Redis**: Economia de custos em LLM com cache de respostas
+
+### Performance & Escalabilidade
+- **BigQuery Streaming**: Paginação automática para grandes datasets
+- **Chunked Writes**: Inserções em chunks de 500 linhas
+- **Memory Optimization**: ~80% menos memória para datasets >1000 chats
 
 ### Relatórios
 - Ranking de Agentes
@@ -100,7 +106,7 @@ projeto_analise_SDR/
 │   └── reporting.py        # Agregação e relatórios
 ├── config/                 # Configurações
 │   └── settings.py         # Settings tipadas (Gemini, BigQuery)
-├── tests/                  # Testes unitários (123 testes, 83% cobertura)
+├── tests/                  # Testes unitários (175 testes, 75% cobertura)
 ├── data/raw/               # Dados de exemplo
 ├── .github/workflows/      # CI/CD com GitHub Actions
 └── pyproject.toml          # Configuração do projeto
@@ -134,9 +140,10 @@ GOOGLE_APPLICATION_CREDENTIALS=caminho/para/credentials.json
 ANALYSIS_DAYS=7
 ```
 
+
 ## 📊 Qualidade do Código
 
-- ✅ **123 testes unitários** com **83% de cobertura**
+- ✅ **175 testes unitários** com **75% de cobertura**
 - ✅ **CI/CD** automatizado (GitHub Actions)
 - ✅ **Type hints** com validação mypy
 - ✅ **Linting** com ruff

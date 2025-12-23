@@ -39,7 +39,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry lock --no-update
+        poetry lock
         poetry install --no-interaction
 
     - name: Run Ruff Linting
@@ -75,7 +75,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry lock --no-update
+        poetry lock
         poetry install --no-interaction
 
     - name: Run Mypy
@@ -116,7 +116,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry lock --no-update
+        poetry lock
         poetry install --no-interaction
 
     - name: Run Tests with Coverage
@@ -151,7 +151,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        poetry lock --no-update
+        poetry lock
         poetry install --no-interaction
 
     - name: Run Bandit Security Scan

@@ -4,25 +4,33 @@ Métricas comparativas e análises por agente.
 """
 
 import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 from src.dashboard_utils import (
-    apply_chart_theme,
     apply_custom_css,
     apply_filters,
     classify_contact_context,
     classify_lead_qualification,
+    create_excel_download,
     get_chat_tags,
     get_colors,
+    render_echarts_bar,
+    render_echarts_bar_gradient,
+    render_user_sidebar,
     setup_plotly_theme,
 )
 
 st.set_page_config(page_title="Agentes", page_icon="👥", layout="wide")
 
+# Require authentication
+from src.auth.auth_manager import AuthManager
+
+AuthManager.require_auth()
+
 # Setup
 setup_plotly_theme()
 apply_custom_css()
+render_user_sidebar()
 COLORS = get_colors()
 
 st.title("👥 Performance de Agentes")
@@ -155,40 +163,35 @@ with col_left:
     st.subheader("⏱️ Ranking de TME (Melhor → Pior)")
 
     df_sorted_tme = df_agents.sort_values("TME (min)").head(15)
+    tme_data = df_sorted_tme.to_dict("records")
 
-    fig_tme = px.bar(
-        df_sorted_tme,
-        x="TME (min)",
-        y="Agente",
-        orientation="h",
-        color="TME (min)",
-        color_continuous_scale=[[0, COLORS["success"]], [0.5, COLORS["warning"]], [1, COLORS["danger"]]],
-        text=df_sorted_tme["TME (min)"].apply(lambda x: f"{x:.1f} min"),
+    # ECharts com gradiente (verde = baixo TME, vermelho = alto)
+    render_echarts_bar_gradient(
+        data=tme_data,
+        x_key="Agente",
+        y_key="TME (min)",
+        gradient_type="success_to_danger",
+        height="400px",
+        key="ranking_tme",
     )
-    fig_tme = apply_chart_theme(fig_tme)
-    fig_tme.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
-    fig_tme.update_traces(textposition="outside")
-    st.plotly_chart(fig_tme, key="ranking_tme")
 
 
 with col_right:
     st.subheader("🎯 Ranking de Qualificação")
 
     df_sorted_qual = df_agents.sort_values("Taxa Qualificação (%)", ascending=False).head(15)
+    qual_data = df_sorted_qual.to_dict("records")
 
-    fig_qual = px.bar(
-        df_sorted_qual,
-        x="Taxa Qualificação (%)",
-        y="Agente",
-        orientation="h",
-        color="Taxa Qualificação (%)",
-        color_continuous_scale=[[0, COLORS["danger"]], [0.5, COLORS["warning"]], [1, COLORS["success"]]],
-        text=df_sorted_qual["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),
+    # ECharts com gradiente (verde = alta qualificação)
+    render_echarts_bar_gradient(
+        data=qual_data,
+        x_key="Agente",
+        y_key="Taxa Qualificação (%)",
+        gradient_type="danger_to_success",
+        reverse_y=True,
+        height="400px",
+        key="ranking_qualificacao",
     )
-    fig_qual = apply_chart_theme(fig_qual)
-    fig_qual.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
-    fig_qual.update_traces(textposition="outside")
-    st.plotly_chart(fig_qual, key="ranking_qualificacao")
 
 
 # ================================================================
@@ -202,37 +205,33 @@ col_vol, col_tme = st.columns(2)
 
 with col_vol:
     st.markdown("**📈 Volume de Atendimentos**")
-    df_vol = df_agents.sort_values("Atendimentos", ascending=True).head(15)
-    fig_vol = px.bar(
-        df_vol,
-        x="Atendimentos",
-        y="Agente",
-        orientation="h",
-        color="Atendimentos",
-        color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
-        text="Atendimentos",
+    df_vol = df_agents.sort_values("Atendimentos", ascending=False).head(15)
+    vol_data = df_vol.to_dict("records")
+
+    # Barras simples para volume
+    render_echarts_bar(
+        data=vol_data,
+        x_key="Agente",
+        y_key="Atendimentos",
+        horizontal=True,
+        height="400px",
+        key="agentes_volume",
     )
-    fig_vol = apply_chart_theme(fig_vol)
-    fig_vol.update_traces(textposition="outside")
-    fig_vol.update_layout(showlegend=False, coloraxis_showscale=False)
-    st.plotly_chart(fig_vol, key="agentes_volume")
 
 with col_tme:
     st.markdown("**⏱️ TME Médio (minutos)**")
     df_tme_sorted = df_agents.sort_values("TME (min)", ascending=True).head(15)
-    fig_tme_agents = px.bar(
-        df_tme_sorted,
-        x="TME (min)",
-        y="Agente",
-        orientation="h",
-        color="TME (min)",
-        color_continuous_scale=[[0, COLORS["success"]], [0.5, COLORS["warning"]], [1, COLORS["danger"]]],
-        text=df_tme_sorted["TME (min)"].apply(lambda x: f"{x:.1f}"),
+    tme_agents_data = df_tme_sorted.to_dict("records")
+
+    # ECharts com gradiente
+    render_echarts_bar_gradient(
+        data=tme_agents_data,
+        x_key="Agente",
+        y_key="TME (min)",
+        gradient_type="success_to_danger",
+        height="400px",
+        key="agentes_tme",
     )
-    fig_tme_agents = apply_chart_theme(fig_tme_agents)
-    fig_tme_agents.update_traces(textposition="outside")
-    fig_tme_agents.update_layout(showlegend=False, coloraxis_showscale=False, yaxis=dict(autorange="reversed"))
-    st.plotly_chart(fig_tme_agents, key="agentes_tme")
 
 
 # ================================================================
@@ -252,3 +251,13 @@ st.dataframe(
     width="stretch",
     hide_index=True,
 )
+
+# Exportar para Excel
+col_export, _ = st.columns([1, 3])
+with col_export:
+    create_excel_download(
+        df_agents.drop(columns=["TME (s)"]),
+        filename="agentes_performance",
+        sheet_name="Performance Agentes",
+        key="export_agentes",
+    )

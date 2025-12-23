@@ -13,18 +13,29 @@ from src.dashboard_utils import (
     apply_chart_theme,
     apply_custom_css,
     apply_filters,
+    calculate_delta,
     classify_lead_qualification,
     get_chat_tags,
     get_colors,
     get_lead_origin,
+    render_echarts_bar,
+    render_echarts_pie,
+    render_user_sidebar,
     setup_plotly_theme,
+    split_chats_by_period,
 )
 
 st.set_page_config(page_title="Visão Geral", page_icon="📊", layout="wide")
 
+# Require authentication
+from src.auth.auth_manager import AuthManager
+
+AuthManager.require_auth()
+
 # Setup
 setup_plotly_theme()
 apply_custom_css()
+render_user_sidebar()
 COLORS = get_colors()
 
 st.title("📊 Visão Geral")
@@ -45,31 +56,63 @@ if not chats:
 
 
 # ================================================================
-# KPIs PRINCIPAIS
+# KPIs PRINCIPAIS COM COMPARATIVO
 # ================================================================
+
+# Dividir chats por período (últimos 7 dias vs 7 dias anteriores)
+current_chats, previous_chats = split_chats_by_period(chats, days=7)
+
+
+# Calcular métricas do período anterior para comparativo
+def calc_metrics(chat_list):
+    total = len(chat_list)
+    waiting = [c.waitingTime for c in chat_list if c.waitingTime is not None]
+    avg_tme = (sum(waiting) / len(waiting) / 60) if waiting else 0
+    quals = [classify_lead_qualification(get_chat_tags(c)) for c in chat_list]
+    qual_rate = (sum(1 for q in quals if q == "qualificado") / total * 100) if total > 0 else 0
+    msgs = [c.messagesCount or len(c.messages) for c in chat_list]
+    avg_msg = (sum(msgs) / len(msgs)) if msgs else 0
+    return total, avg_tme, qual_rate, avg_msg
+
+
+curr_total, curr_tme, curr_qual, curr_msg = calc_metrics(chats)
+prev_total, prev_tme, prev_qual, prev_msg = calc_metrics(previous_chats) if previous_chats else (0, 0, 0, 0)
+
+# Calcular deltas
+_, delta_total, _ = calculate_delta(curr_total, prev_total)
+_, delta_tme, _ = calculate_delta(curr_tme, prev_tme)
+_, delta_qual, _ = calculate_delta(curr_qual, prev_qual)
+_, delta_msg, _ = calculate_delta(curr_msg, prev_msg)
 
 col1, col2, col3, col4 = st.columns(4)
 
-# Total de chats
-total_chats = len(chats)
-col1.metric("Total de Atendimentos", f"{total_chats:,}")
-
-# TME médio (waitingTime)
-waiting_times = [c.waitingTime for c in chats if c.waitingTime is not None]
-avg_tme_seconds = sum(waiting_times) / len(waiting_times) if waiting_times else 0
-avg_tme_minutes = avg_tme_seconds / 60
-col2.metric("TME Médio", f"{avg_tme_minutes:.1f} min")
-
-# Taxa de qualificação
-qualifications = [classify_lead_qualification(get_chat_tags(c)) for c in chats]
-qualified_count = sum(1 for q in qualifications if q == "qualificado")
-qualification_rate = (qualified_count / total_chats * 100) if total_chats > 0 else 0
-col3.metric("Taxa de Qualificação", f"{qualification_rate:.1f}%")
-
-# Mensagens por chat (média)
-msg_counts = [c.messagesCount or len(c.messages) for c in chats]
-avg_messages = sum(msg_counts) / len(msg_counts) if msg_counts else 0
-col4.metric("Msgs por Chat (Média)", f"{avg_messages:.1f}")
+# KPIs com deltas
+col1.metric(
+    "Total de Atendimentos",
+    f"{curr_total:,}",
+    delta=delta_total if prev_total > 0 else None,
+    help="Comparativo com período anterior",
+)
+col2.metric(
+    "TME Médio",
+    f"{curr_tme:.1f} min",
+    delta=delta_tme if prev_tme > 0 else None,
+    delta_color="inverse",  # Menos TME é melhor
+    help="Tempo Médio de Espera - menos é melhor",
+)
+col3.metric(
+    "Taxa de Qualificação",
+    f"{curr_qual:.1f}%",
+    delta=delta_qual if prev_qual > 0 else None,
+    help="% de leads qualificados",
+)
+col4.metric(
+    "Msgs por Chat",
+    f"{curr_msg:.1f}",
+    delta=delta_msg if prev_msg > 0 else None,
+    delta_color="off",
+    help="Média de mensagens por atendimento",
+)
 
 st.markdown("---")
 
@@ -84,6 +127,8 @@ col_left, col_right = st.columns(2)
 with col_left:
     st.subheader("🎯 Distribuição de Qualificação")
 
+    # Calcular qualificações para o gráfico
+    qualifications = [classify_lead_qualification(get_chat_tags(c)) for c in chats]
     qual_counts = {}
     for q in qualifications:
         qual_counts[q] = qual_counts.get(q, 0) + 1
@@ -105,25 +150,15 @@ with col_left:
     qual_df_data = [{"Qualificação": labels_map.get(k, k), "Quantidade": v} for k, v in qual_counts.items()]
 
     if qual_df_data:
-        import pandas as pd
-
-        qual_df = pd.DataFrame(qual_df_data)
-        # Ordenar por quantidade (maior para menor)
-        qual_df = qual_df.sort_values("Quantidade", ascending=False)
-
-        fig_qual = px.bar(
-            qual_df,
-            x="Quantidade",
-            y="Qualificação",
-            orientation="h",
-            color="Qualificação",
-            color_discrete_map=color_map,
-            text="Quantidade",
+        # Usar gráfico de pizza ECharts
+        render_echarts_pie(
+            data=qual_df_data,
+            name_key="Qualificação",
+            value_key="Quantidade",
+            color_map=color_map,
+            height="350px",
+            key="distribuicao_qualificacao",
         )
-        fig_qual.update_traces(textposition="outside")
-        fig_qual = apply_chart_theme(fig_qual)
-        fig_qual.update_layout(showlegend=False)
-        st.plotly_chart(fig_qual, key="distribuicao_qualificacao")
 
 
 # Volume por Origem
@@ -140,29 +175,18 @@ with col_right:
     sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
 
     if len(sorted_origins) > 0:
-        import pandas as pd
+        # Converter para lista de dicts
+        origin_data = [{"Origem": o, "Quantidade": q} for o, q in sorted_origins]
 
-        # Criar DataFrame
-        origin_df = pd.DataFrame(sorted_origins, columns=["Origem", "Quantidade"])
-        origin_df = origin_df.sort_values("Quantidade", ascending=True)  # Ascending para maior ficar em cima
-
-        # Gráfico de barras horizontais com Plotly
-        fig_origin = px.bar(
-            origin_df,
-            x="Quantidade",
-            y="Origem",
-            orientation="h",
-            text="Quantidade",
-            color_discrete_sequence=[COLORS["primary"]],
+        # Gráfico de barras ECharts
+        render_echarts_bar(
+            data=origin_data,
+            x_key="Origem",
+            y_key="Quantidade",
+            horizontal=True,
+            height="350px",
+            key="volume_por_origem",
         )
-        fig_origin.update_traces(textposition="outside")
-        fig_origin = apply_chart_theme(fig_origin)
-        fig_origin.update_layout(
-            showlegend=False,
-            xaxis_title="Quantidade",
-            yaxis_title="",
-        )
-        st.plotly_chart(fig_origin, key="volume_por_origem_chart")
     else:
         st.info("📊 Nenhuma origem encontrada nos dados carregados.")
 

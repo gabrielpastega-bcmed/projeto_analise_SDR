@@ -4,27 +4,32 @@ TME por horário, primeiro contato, e análises de tempo.
 """
 
 import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
 import pytz
 import streamlit as st
 
 from src.dashboard_utils import (
-    BUSINESS_HOURS,
-    apply_chart_theme,
     apply_custom_css,
     apply_filters,
     classify_contact_context,
     get_colors,
     is_business_hour,
+    render_echarts_bar,
+    render_echarts_line,
+    render_user_sidebar,
     setup_plotly_theme,
 )
 
 st.set_page_config(page_title="Análise Temporal", page_icon="📈", layout="wide")
 
+# Require authentication
+from src.auth.auth_manager import AuthManager
+
+AuthManager.require_auth()
+
 # Setup
 setup_plotly_theme()
 apply_custom_css()
+render_user_sidebar()
 COLORS = get_colors()
 
 st.title("📈 Análise Temporal")
@@ -69,48 +74,28 @@ for chat in chats:
             hour_counts_bh[hour] += 1
 
 df_hours = pd.DataFrame(
-    [{"Hora": f"{h:02d}h", "Total": hour_counts[h], "Horário Comercial": hour_counts_bh[h]} for h in range(24)]
+    [
+        {
+            "Hora": f"{h:02d}h",
+            "Total": hour_counts[h],
+            "Horário Comercial": hour_counts_bh[h],
+        }
+        for h in range(24)
+    ]
 )
 
-fig_hours = go.Figure()
-fig_hours.add_trace(
-    go.Bar(
-        x=df_hours["Hora"],
-        y=df_hours["Total"],
-        name="Total",
-        marker_color=COLORS["info"],
-        opacity=0.6,
-    )
-)
-fig_hours.add_trace(
-    go.Bar(
-        x=df_hours["Hora"],
-        y=df_hours["Horário Comercial"],
-        name="Horário Comercial",
-        marker_color=COLORS["success"],
-    )
-)
+# Converter para lista de dicts para ECharts
+hours_data = df_hours.to_dict("records")
 
-fig_hours = apply_chart_theme(fig_hours)
-
-# Adicionar destaque de horário comercial (08:00-18:00)
-fig_hours.add_vrect(
-    x0="08h",
-    x1="18h",
-    fillcolor=COLORS["success"],
-    opacity=0.1,
-    annotation_text="Horário Comercial",
-    annotation_position="top left",
-    line_width=0,
+# Gráfico de barras ECharts
+render_echarts_bar(
+    data=hours_data,
+    x_key="Hora",
+    y_key="Total",
+    height="400px",
+    show_label=False,
+    key="volume_por_hora",
 )
-
-fig_hours.update_layout(
-    barmode="overlay",
-    xaxis_title="Hora do Dia",
-    yaxis_title="Quantidade de Contatos",
-    legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
-)
-st.plotly_chart(fig_hours, key="volume_por_hora")
 
 # Insight
 peak_hour = max(hour_counts.items(), key=lambda x: x[1])
@@ -147,32 +132,19 @@ df_tme_hour = pd.DataFrame(
 df_tme_hour_filtered = df_tme_hour[df_tme_hour["Contatos"] > 0]
 
 if not df_tme_hour_filtered.empty:
-    fig_tme_hour = px.line(
-        df_tme_hour_filtered,
-        x="Hora",
-        y="TME (min)",
-        markers=True,
-        text=df_tme_hour_filtered["TME (min)"].apply(lambda x: f"{x:.1f}"),  # Labels
-        color_discrete_sequence=[COLORS["primary"]],
-    )
-    fig_tme_hour = apply_chart_theme(fig_tme_hour)
-    fig_tme_hour.update_traces(textposition="top center")
-    fig_tme_hour.update_layout(
-        xaxis_title="Hora do Primeiro Contato",
-        yaxis_title="TME Médio (minutos)",
-    )
+    # Converter para lista de dicts para ECharts
+    tme_hour_data = df_tme_hour_filtered.to_dict("records")
 
-    # Adicionar área de horário comercial (08:00-18:00)
-    fig_tme_hour.add_vrect(
-        x0=f"{BUSINESS_HOURS['start']:02d}h",
-        x1=f"{BUSINESS_HOURS['end']:02d}h",
-        fillcolor=COLORS["success"],
-        opacity=0.1,
-        annotation_text="Horário Comercial",
-        annotation_position="top left",
+    # Gráfico de linha ECharts
+    render_echarts_line(
+        data=tme_hour_data,
+        x_key="Hora",
+        y_key="TME (min)",
+        height="400px",
+        smooth=True,
+        fill_area=True,
+        key="tme_por_hora",
     )
-
-    st.plotly_chart(fig_tme_hour, key="tme_por_hora")
 else:
     st.info("Sem dados de TME por hora.")
 
@@ -226,27 +198,24 @@ comparison_data = [
 ]
 df_comparison = pd.DataFrame(comparison_data)
 
-fig_comparison = px.bar(
-    df_comparison,
-    x="Contexto",
-    y="TME (min)",
-    color="Contexto",
-    color_discrete_map={
-        "Horário Comercial": COLORS["success"],
-        "Fora do Expediente": COLORS["warning"],
-    },
-    text=df_comparison["TME (min)"].apply(lambda x: f"{x:.1f} min"),
+# Gráfico de barras ECharts para comparação
+comparison_bar_data = df_comparison.to_dict("records")
+render_echarts_bar(
+    data=comparison_bar_data,
+    x_key="Contexto",
+    y_key="TME (min)",
+    horizontal=False,
+    height="350px",
+    key="comparacao_tme",
 )
-fig_comparison = apply_chart_theme(fig_comparison)
-fig_comparison.update_traces(textposition="outside")
-fig_comparison.update_layout(showlegend=False)
-st.plotly_chart(fig_comparison, key="comparacao_tme")
 
-st.info("""
+st.info(
+    """
 📌 **Nota sobre TME fora do expediente:**
 O tempo de espera para contatos feitos fora do horário comercial inclui o período
 até a abertura do expediente. Isso é esperado e não indica problema de atendimento.
-""")
+"""
+)
 
 
 # ================================================================
@@ -264,22 +233,18 @@ for chat in chats:
         date_counts[date_key] = date_counts.get(date_key, 0) + 1
 
 if date_counts:
-    df_dates = pd.DataFrame([{"Data": d, "Contatos": c} for d, c in sorted(date_counts.items())])
+    df_dates = pd.DataFrame([{"Data": str(d), "Contatos": c} for d, c in sorted(date_counts.items())])
 
-    fig_trend = px.line(
-        df_dates,
-        x="Data",
-        y="Contatos",
-        markers=True,
-        text="Contatos",  # Labels visíveis
-        color_discrete_sequence=[COLORS["primary"]],
+    # Gráfico de linha ECharts
+    dates_data = df_dates.to_dict("records")
+    render_echarts_line(
+        data=dates_data,
+        x_key="Data",
+        y_key="Contatos",
+        height="400px",
+        smooth=True,
+        fill_area=True,
+        key="tendencia_diaria",
     )
-    fig_trend = apply_chart_theme(fig_trend)
-    fig_trend.update_traces(textposition="top center")
-    fig_trend.update_layout(
-        xaxis_title="Data",
-        yaxis_title="Número de Contatos",
-    )
-    st.plotly_chart(fig_trend, key="tendencia_diaria")
 else:
     st.info("Sem dados de tendência temporal.")

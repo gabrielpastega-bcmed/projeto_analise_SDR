@@ -10,14 +10,21 @@ from src.dashboard_utils import (
     apply_chart_theme,
     apply_custom_css,
     get_colors,
+    render_user_sidebar,
     setup_plotly_theme,
 )
 
 st.set_page_config(page_title="Insights", page_icon="🧠", layout="wide")
 
+# Require authentication
+from src.auth.auth_manager import AuthManager
+
+AuthManager.require_auth()
+
 # Setup
 setup_plotly_theme()
 apply_custom_css()
+render_user_sidebar()
 COLORS = get_colors()
 
 st.title("🧠 Insights Qualitativos")
@@ -94,8 +101,8 @@ def aggregate_bigquery_results(results):
         "total_analyzed": total,
         "cx": {
             "sentiment_distribution": sentiments,
-            "avg_nps_prediction": sum(nps_scores) / len(nps_scores) if nps_scores else 0,
-            "avg_humanization_score": sum(humanization) / len(humanization) if humanization else 0,
+            "avg_nps_prediction": (sum(nps_scores) / len(nps_scores) if nps_scores else 0),
+            "avg_humanization_score": (sum(humanization) / len(humanization) if humanization else 0),
         },
         "sales": {
             "outcome_distribution": outcomes,
@@ -244,7 +251,8 @@ if weeks:
 
 else:
     st.info("📊 Nenhuma análise disponível ainda.")
-    st.markdown("""
+    st.markdown(
+        """
     ### Como começar?
 
     1. Execute o script de análise semanal:
@@ -253,7 +261,8 @@ else:
     ```
 
     2. Ou aguarde a próxima execução automática (segundas-feiras).
-    """)
+    """
+    )
 
 # ================================================================
 # EXECUTAR NOVA ANÁLISE (Admin)
@@ -422,10 +431,10 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
             "total_analyzed": total,
             "cx": {
                 "sentiment_distribution": sentiments,
-                "avg_nps_prediction": sum(nps_scores) / len(nps_scores) if nps_scores else 0,
-                "avg_humanization_score": sum(humanization_scores) / len(humanization_scores)
-                if humanization_scores
-                else 0,
+                "avg_nps_prediction": (sum(nps_scores) / len(nps_scores) if nps_scores else 0),
+                "avg_humanization_score": (
+                    sum(humanization_scores) / len(humanization_scores) if humanization_scores else 0
+                ),
             },
             "sales": {
                 "outcome_distribution": outcomes,

@@ -3,15 +3,18 @@ Cliente para integração com a API do Google Gemini.
 
 Este módulo fornece uma classe GeminiClient para análise qualitativa
 de conversas usando o modelo Gemini 2.5 Flash.
+
+Migrado para google-genai SDK (substitui google-generativeai deprecado).
 """
 
 import asyncio
 import json
 import os
-from typing import Any, Dict, Optional
+from typing import Any
 
-import google.generativeai as genai
 from dotenv import load_dotenv
+from google import genai
+from google.genai import types
 
 from src.logging_config import get_logger
 
@@ -30,9 +33,11 @@ class GeminiClient:
 
     Fornece métodos para análise qualitativa de conversas com retry logic
     e parsing de JSON estruturado.
+
+    Usa o novo google-genai SDK (GA desde maio 2025).
     """
 
-    def __init__(self, api_key: Optional[str] = None, timeout: int = DEFAULT_TIMEOUT):
+    def __init__(self, api_key: str | None = None, timeout: int = DEFAULT_TIMEOUT):
         """
         Inicializa o cliente Gemini.
 
@@ -46,18 +51,20 @@ class GeminiClient:
         if not self.api_key:
             raise ValueError("GEMINI_API_KEY não configurada. Configure no .env ou passe como parâmetro.")
 
-        genai.configure(api_key=self.api_key)
+        # Novo SDK: usa Client() ao invés de configure()
+        self.client = genai.Client(api_key=self.api_key)
+
         # Modelo Gemini 2.5 Flash - estável, otimizado para texto
-        self.model = genai.GenerativeModel("gemini-2.5-flash")
+        self.model_name = "gemini-2.5-flash"
 
         # Configuração para respostas JSON estruturadas
-        self.generation_config = genai.GenerationConfig(
+        self.generation_config = types.GenerateContentConfig(
             response_mime_type="application/json",
             temperature=0.3,  # Mais determinístico para análises
         )
-        logger.info(f"GeminiClient inicializado (timeout={timeout}s)")
+        logger.info(f"GeminiClient inicializado (timeout={timeout}s, model={self.model_name})")
 
-    async def analyze(self, prompt: str, max_retries: int = 3) -> Dict[str, Any]:
+    async def analyze(self, prompt: str, max_retries: int = 3) -> dict[str, Any]:
         """
         Envia um prompt ao Gemini e retorna a resposta como JSON.
 
@@ -72,16 +79,19 @@ class GeminiClient:
             try:
                 # Wrapper com timeout para evitar travamento indefinido
                 async with asyncio.timeout(self.timeout):
-                    # Gemini SDK é síncrono, então rodamos em thread separada
+                    # Nova API: usa client.models.generate_content()
                     response = await asyncio.get_event_loop().run_in_executor(
                         None,
-                        lambda: self.model.generate_content(
-                            prompt,
-                            generation_config=self.generation_config,
+                        lambda: self.client.models.generate_content(
+                            model=self.model_name,
+                            contents=prompt,
+                            config=self.generation_config,
                         ),
                     )
 
                 # Parse da resposta JSON
+                if response.text is None:
+                    return {"error": "Resposta vazia do modelo"}
                 result = self._parse_response(response.text)
                 return result
 
@@ -106,7 +116,7 @@ class GeminiClient:
 
         return {"error": "Máximo de tentativas excedido"}
 
-    def _parse_response(self, text: str) -> Dict[str, Any]:
+    def _parse_response(self, text: str) -> dict[str, Any]:
         """
         Parse da resposta do Gemini para JSON.
 
@@ -127,7 +137,7 @@ class GeminiClient:
 
         return json.loads(text.strip())
 
-    async def analyze_chat_cx(self, transcript: str) -> Dict[str, Any]:
+    async def analyze_chat_cx(self, transcript: str) -> dict[str, Any]:
         """Analisa experiência do cliente (CX)."""
         prompt = f"""Você é um analista de CX especializado em vendas B2B de equipamentos médicos.
 Analise a transcrição de chat a seguir sob a ótica de Experiência do Cliente.
@@ -150,7 +160,7 @@ Transcrição:
 {transcript}"""
         return await self.analyze(prompt)
 
-    async def analyze_chat_product(self, transcript: str) -> Dict[str, Any]:
+    async def analyze_chat_product(self, transcript: str) -> dict[str, Any]:
         """Analisa inteligência de produto."""
         prompt = f"""Você é um analista de produto de uma empresa de equipamentos.
 Analise a transcrição para identificar interesses e tendências de produto.
@@ -174,9 +184,9 @@ Transcrição:
 {transcript}"""
         return await self.analyze(prompt)
 
-    async def analyze_chat_sales(self, transcript: str) -> Dict[str, Any]:
+    async def analyze_chat_sales(self, transcript: str) -> dict[str, Any]:
         """Analisa conversão de vendas."""
-        prompt = f"""Você é um analista de vendas para uma equipe comercial.  # type: ignore[return-value]
+        prompt = f"""Você é um analista de vendas para uma equipe comercial.
 Analise a transcrição para avaliar o progresso no funil de vendas.
 
 ESTÁGIOS DO FUNIL:
@@ -197,7 +207,7 @@ Transcrição:
 {transcript}"""
         return await self.analyze(prompt)
 
-    async def analyze_chat_qa(self, transcript: str) -> Dict[str, Any]:
+    async def analyze_chat_qa(self, transcript: str) -> dict[str, Any]:
         """Analisa Quality Assurance (QA)."""
         prompt = f"""Você é um analista de QA para uma equipe de vendas.
 Avalie se o agente seguiu o script de qualificação corretamente.
@@ -222,7 +232,7 @@ Transcrição:
 {transcript}"""
         return await self.analyze(prompt)
 
-    async def analyze_chat_full(self, transcript: str, validate: bool = True) -> Dict[str, Any]:
+    async def analyze_chat_full(self, transcript: str, validate: bool = True) -> dict[str, Any]:
         """
         Executa todas as análises em paralelo com validação opcional.
 

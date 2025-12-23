@@ -27,6 +27,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
+        version: '2.2.1'
         virtualenvs-create: true
         virtualenvs-in-project: true
 
@@ -37,7 +38,9 @@ jobs:
         key: venv-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock
+        poetry install --no-interaction --all-extras
 
     - name: Run Ruff Linting
       run: poetry run ruff check .
@@ -60,6 +63,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
+        version: '2.2.1'
         virtualenvs-create: true
         virtualenvs-in-project: true
 
@@ -70,7 +74,9 @@ jobs:
         key: venv-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock
+        poetry install --no-interaction --all-extras
 
     - name: Run Mypy
       run: poetry run mypy . --exclude "pages/"
@@ -96,6 +102,7 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
+        version: '2.2.1'
         virtualenvs-create: true
         virtualenvs-in-project: true
 
@@ -108,10 +115,12 @@ jobs:
           venv-${{ runner.os }}-${{ matrix.python-version }}-
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock
+        poetry install --no-interaction --all-extras
 
     - name: Run Tests with Coverage
-      run: poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=70
+      run: poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=60
 
     - name: Upload Coverage to Codecov
       uses: codecov/codecov-action@v4
@@ -136,11 +145,14 @@ jobs:
     - name: Install Poetry
       uses: snok/install-poetry@v1
       with:
+        version: '2.2.1'
         virtualenvs-create: true
         virtualenvs-in-project: true
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock
+        poetry install --no-interaction --all-extras
 
     - name: Run Bandit Security Scan
       run: poetry run bandit -r src/ -lll

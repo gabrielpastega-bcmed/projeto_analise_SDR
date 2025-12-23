@@ -10,11 +10,13 @@ import streamlit as st
 # This MUST run before importing modules that use asyncio
 nest_asyncio.apply()
 
+from src.auth.auth_manager import AuthManager  # noqa: E402
 from src.dashboard_utils import (  # noqa: E402
     apply_custom_css,
     get_colors,
     get_lead_origin,
     init_session_state,
+    render_user_sidebar,
     setup_plotly_theme,
 )
 from src.ingestion import (  # noqa: E402
@@ -22,6 +24,9 @@ from src.ingestion import (  # noqa: E402
     load_chats_from_bigquery,
     load_chats_from_json,
 )
+
+# Require authentication for all pages
+AuthManager.require_auth()
 
 # Page config
 st.set_page_config(
@@ -35,6 +40,7 @@ st.set_page_config(
 setup_plotly_theme()
 apply_custom_css()
 init_session_state()
+render_user_sidebar()
 COLORS = get_colors()
 
 # ================================================================
@@ -42,7 +48,8 @@ COLORS = get_colors()
 # ================================================================
 
 st.title("📊 Dashboard de Análise SDR")
-st.markdown("""
+st.markdown(
+    """
 **Bem-vindo ao Dashboard de Análise SDR.**
 
 Use o menu lateral para navegar entre as diferentes análises:
@@ -50,7 +57,8 @@ Use o menu lateral para navegar entre as diferentes análises:
 - **👥 Agentes** - Performance comparativa de agentes
 - **📈 Análise Temporal** - TME por horário, primeiro contato
 - **🎯 Leads** - Origem, qualificação, funil
-""")
+"""
+)
 
 st.markdown("---")
 
@@ -70,7 +78,9 @@ st.sidebar.subheader("📊 Opções de Carregamento")
 days = st.sidebar.slider("Dias para análise", min_value=1, max_value=90, value=7)
 limit = st.sidebar.slider("Limite de chats", min_value=100, max_value=10000, value=2000, step=100)
 lightweight = st.sidebar.checkbox(
-    "Modo leve (mais rápido)", value=True, help="Exclui mensagens individuais para carregamento mais rápido"
+    "Modo leve (mais rápido)",
+    value=True,
+    help="Exclui mensagens individuais para carregamento mais rápido",
 )
 
 # Botão para carregar dados
@@ -243,7 +253,74 @@ if st.session_state.data_loaded and st.session_state.chats:
         col4.metric("Origem Principal", most_common_origin[0][:25])
 
     st.markdown("---")
-    st.info("👈 Use o menu lateral para navegar entre as análises detalhadas.")
+
+    # ================================================================
+    # QUICK LINKS - NAVEGAÇÃO RÁPIDA
+    # ================================================================
+
+    st.subheader("🚀 Navegação Rápida")
+
+    link_col1, link_col2, link_col3, link_col4 = st.columns(4)
+
+    with link_col1:
+        st.markdown(
+            """
+        <div style="padding: 15px; border-radius: 12px;
+             background: linear-gradient(135deg, #3b82f6, #1d4ed8); text-align: center;">
+            <div style="font-size: 2em;">📊</div>
+            <div style="color: white; font-weight: 600; margin-top: 8px;">Visão Geral</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.85em;">KPIs e métricas macro</div>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Acessar →", key="nav_visao"):
+            st.switch_page("pages/1_📊_Visão_Geral.py")
+
+    with link_col2:
+        st.markdown(
+            """
+        <div style="padding: 15px; border-radius: 12px;
+             background: linear-gradient(135deg, #22c55e, #16a34a); text-align: center;">
+            <div style="font-size: 2em;">👥</div>
+            <div style="color: white; font-weight: 600; margin-top: 8px;">Agentes</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.85em;">Performance comparativa</div>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Acessar →", key="nav_agentes"):
+            st.switch_page("pages/2_👥_Agentes.py")
+
+    with link_col3:
+        st.markdown(
+            """
+        <div style="padding: 15px; border-radius: 12px;
+             background: linear-gradient(135deg, #f59e0b, #d97706); text-align: center;">
+            <div style="font-size: 2em;">📈</div>
+            <div style="color: white; font-weight: 600; margin-top: 8px;">Temporal</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.85em;">Análise por horário</div>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Acessar →", key="nav_temporal"):
+            st.switch_page("pages/3_📈_Análise_Temporal.py")
+
+    with link_col4:
+        st.markdown(
+            """
+        <div style="padding: 15px; border-radius: 12px;
+             background: linear-gradient(135deg, #8b5cf6, #7c3aed); text-align: center;">
+            <div style="font-size: 2em;">🎯</div>
+            <div style="color: white; font-weight: 600; margin-top: 8px;">Leads</div>
+            <div style="color: rgba(255,255,255,0.8); font-size: 0.85em;">Origem e qualificação</div>
+        </div>
+        """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Acessar →", key="nav_leads"):
+            st.switch_page("pages/4_🎯_Leads.py")
 
 else:
     st.warning("⚠️ Carregue os dados usando o botão na barra lateral para visualizar as análises.")

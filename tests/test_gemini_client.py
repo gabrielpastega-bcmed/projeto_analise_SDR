@@ -1,5 +1,7 @@
 """
 Testes para o GeminiClient com mocks.
+
+Atualizado para nova API google.genai (substitui google.generativeai).
 """
 
 import asyncio
@@ -58,13 +60,13 @@ def test_parse_response_invalid_json():
 @pytest.mark.asyncio
 async def test_analyze_success():
     """Testa chamada bem-sucedida a analyze."""
-    with patch("src.gemini_client.genai") as mock_genai:
-        # Mock do modelo
-        mock_model = MagicMock()
+    with patch("src.gemini_client.genai.Client") as mock_client_class:
+        # Mock do client e da resposta
+        mock_client = MagicMock()
         mock_response = MagicMock()
         mock_response.text = '{"result": "success"}'
-        mock_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         client = GeminiClient(api_key="fake_key")
         result = await client.analyze("Test prompt")
@@ -75,16 +77,16 @@ async def test_analyze_success():
 @pytest.mark.asyncio
 async def test_analyze_json_error_retries():
     """Testa que erro de JSON causa retry."""
-    with patch("src.gemini_client.genai") as mock_genai:
-        mock_model = MagicMock()
+    with patch("src.gemini_client.genai.Client") as mock_client_class:
+        mock_client = MagicMock()
 
         # Primeira chamada retorna JSON invalido, segunda retorna valido
         responses = [
             MagicMock(text="invalid json"),
             MagicMock(text='{"result": "success"}'),
         ]
-        mock_model.generate_content.side_effect = responses
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client.models.generate_content.side_effect = responses
+        mock_client_class.return_value = mock_client
 
         client = GeminiClient(api_key="fake_key")
         result = await client.analyze("Test prompt", max_retries=2)
@@ -96,15 +98,9 @@ async def test_analyze_json_error_retries():
 @pytest.mark.asyncio
 async def test_analyze_timeout_returns_error():
     """Testa que timeout retorna erro estruturado."""
-    with patch("src.gemini_client.genai") as mock_genai:
-        mock_model = MagicMock()
-
-        # Simula timeout fazendo a chamada demorar
-        async def slow_call(*args, **kwargs):
-            await asyncio.sleep(10)  # Mais que o timeout
-
-        mock_model.generate_content.side_effect = slow_call
-        mock_genai.GenerativeModel.return_value = mock_model
+    with patch("src.gemini_client.genai.Client") as mock_client_class:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
 
         # Timeout de 0.1s para teste rapido
         client = GeminiClient(api_key="fake_key", timeout=1)
@@ -134,7 +130,7 @@ def test_init_raises_without_api_key():
 
 def test_init_with_custom_timeout():
     """Testa inicializacao com timeout customizado."""
-    with patch("src.gemini_client.genai"):
+    with patch("src.gemini_client.genai.Client"):
         client = GeminiClient(api_key="fake_key", timeout=120)
 
         assert client.timeout == 120
@@ -148,13 +144,13 @@ def test_init_with_custom_timeout():
 @pytest.mark.asyncio
 async def test_analyze_chat_full_returns_all_keys():
     """Testa que analyze_chat_full retorna todas as chaves."""
-    with patch("src.gemini_client.genai") as mock_genai:
-        mock_model = MagicMock()
+    with patch("src.gemini_client.genai.Client") as mock_client_class:
+        mock_client = MagicMock()
         # Mock resposta válida
         mock_json = '{"sentiment": "positivo", "humanization_score": 4}'
         mock_response = MagicMock(text=mock_json)
-        mock_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         client = GeminiClient(api_key="fake_key")
         result = await client.analyze_chat_full("Test transcript", validate=False)
@@ -168,12 +164,12 @@ async def test_analyze_chat_full_returns_all_keys():
 @pytest.mark.asyncio
 async def test_analyze_chat_full_validation_adds_errors():
     """Testa que validação adiciona erros quando schema é inválido."""
-    with patch("src.gemini_client.genai") as mock_genai:
-        mock_model = MagicMock()
+    with patch("src.gemini_client.genai.Client") as mock_client_class:
+        mock_client = MagicMock()
         # Mock resposta com valor inválido
         mock_response = MagicMock(text='{"sentiment": "muito_positivo"}')  # Valor inválido
-        mock_model.generate_content.return_value = mock_response
-        mock_genai.GenerativeModel.return_value = mock_model
+        mock_client.models.generate_content.return_value = mock_response
+        mock_client_class.return_value = mock_client
 
         client = GeminiClient(api_key="fake_key")
         result = await client.analyze_chat_full("Test transcript", validate=True)

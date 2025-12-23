@@ -4,7 +4,6 @@ Origem, qualificação, funil e conversão.
 """
 
 import pandas as pd
-import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
@@ -16,17 +15,27 @@ from src.dashboard_utils import (
     apply_custom_css,
     apply_filters,
     classify_lead_qualification,
+    create_excel_download,
     get_chat_tags,
     get_colors,
     get_lead_origin,
+    render_echarts_bar,
+    render_echarts_bar_gradient,
+    render_user_sidebar,
     setup_plotly_theme,
 )
 
 st.set_page_config(page_title="Leads", page_icon="🎯", layout="wide")
 
+# Require authentication
+from src.auth.auth_manager import AuthManager
+
+AuthManager.require_auth()
+
 # Setup
 setup_plotly_theme()
 apply_custom_css()
+render_user_sidebar()
 COLORS = get_colors()
 
 st.title("🎯 Análise de Leads")
@@ -84,7 +93,12 @@ origin_data = {}
 for chat in chats:
     origin = get_lead_origin(chat)
     if origin not in origin_data:
-        origin_data[origin] = {"total": 0, "qualificados": 0, "tme_sum": 0, "tme_count": 0}
+        origin_data[origin] = {
+            "total": 0,
+            "qualificados": 0,
+            "tme_sum": 0,
+            "tme_count": 0,
+        }
 
     origin_data[origin]["total"] += 1
 
@@ -115,52 +129,35 @@ for origin, data in origin_data.items():
 
 if origin_metrics:
     df_origins = pd.DataFrame(origin_metrics)
-    df_origins = df_origins.sort_values("Total", ascending=True)  # Ascending para maior ficar em cima
+    df_origins = df_origins.sort_values("Total", ascending=False)
 
     col_left, col_right = st.columns(2)
 
     with col_left:
         st.markdown("**Volume por Origem**")
-        # Gráfico de barras horizontais com Plotly
-        fig_vol = px.bar(
-            df_origins.head(10),
-            x="Total",
-            y="Origem",
-            orientation="h",
-            text="Total",
-            color_discrete_sequence=[COLORS["primary"]],
+        # ECharts barras
+        vol_data = df_origins.head(10).to_dict("records")
+        render_echarts_bar(
+            data=vol_data,
+            x_key="Origem",
+            y_key="Total",
+            horizontal=True,
+            height="400px",
+            key="leads_volume_origem",
         )
-        fig_vol.update_traces(textposition="outside")
-        fig_vol = apply_chart_theme(fig_vol)
-        fig_vol.update_layout(
-            showlegend=False,
-            xaxis_title="Total de Leads",
-            yaxis_title="",
-        )
-        st.plotly_chart(fig_vol, key="leads_volume_por_origem")
 
     with col_right:
         st.markdown("**Taxa de Qualificação por Origem**")
-        # Gráfico de barras horizontais com gradiente
-        df_qual_sorted = df_origins.head(10).sort_values("Taxa Qualificação (%)", ascending=True)
-        fig_qual = px.bar(
-            df_qual_sorted,
-            x="Taxa Qualificação (%)",
-            y="Origem",
-            orientation="h",
-            text=df_qual_sorted["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%"),
-            color="Taxa Qualificação (%)",
-            color_continuous_scale=[[0, COLORS["danger"]], [0.5, COLORS["warning"]], [1, COLORS["success"]]],
+        # ECharts barras com gradiente
+        qual_data = df_origins.head(10).to_dict("records")
+        render_echarts_bar_gradient(
+            data=qual_data,
+            x_key="Origem",
+            y_key="Taxa Qualificação (%)",
+            gradient_type="danger_to_success",
+            height="400px",
+            key="leads_taxa_origem",
         )
-        fig_qual.update_traces(textposition="outside")
-        fig_qual = apply_chart_theme(fig_qual)
-        fig_qual.update_layout(
-            showlegend=False,
-            coloraxis_showscale=False,
-            xaxis_title="Taxa de Qualificação (%)",
-            yaxis_title="",
-        )
-        st.plotly_chart(fig_qual, key="leads_taxa_qualificacao_origem")
 else:
     st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
 
@@ -175,8 +172,14 @@ st.subheader("🔄 Funil de Qualificação")
 # Dados do funil
 funnel_data = [
     {"Etapa": "Total de Leads", "Quantidade": total},
-    {"Etapa": "Respondidos pelo Bot", "Quantidade": sum(1 for c in chats if c.withBot == "true")},
-    {"Etapa": "Atendidos por Humano", "Quantidade": sum(1 for c in chats if c.agent is not None)},
+    {
+        "Etapa": "Respondidos pelo Bot",
+        "Quantidade": sum(1 for c in chats if c.withBot == "true"),
+    },
+    {
+        "Etapa": "Atendidos por Humano",
+        "Quantidade": sum(1 for c in chats if c.agent is not None),
+    },
     {"Etapa": "Qualificados (Q/Q+)", "Quantidade": qual_counts["qualificado"]},
 ]
 
@@ -187,7 +190,14 @@ fig_funnel = go.Figure(
         y=df_funnel["Etapa"],
         x=df_funnel["Quantidade"],
         textinfo="value+percent initial",
-        marker=dict(color=[COLORS["info"], COLORS["secondary"], COLORS["primary"], COLORS["success"]]),
+        marker=dict(
+            color=[
+                COLORS["info"],
+                COLORS["secondary"],
+                COLORS["primary"],
+                COLORS["success"],
+            ]
+        ),
     )
 )
 fig_funnel = apply_chart_theme(fig_funnel)
@@ -227,23 +237,16 @@ if all_tags:
     df_tags = pd.DataFrame(tag_data)
     df_tags = df_tags.sort_values("Quantidade", ascending=False)
 
-    fig_tags = px.bar(
-        df_tags,
-        x="Quantidade",
-        y="Tag",
-        orientation="h",
-        color="Categoria",
-        color_discrete_map={
-            "Qualificado": COLORS["success"],
-            "Não Qualificado": COLORS["danger"],
-            "Outros": COLORS["warning"],
-        },
-        text="Quantidade",  # Labels visíveis
+    # ECharts barras para tags
+    tags_chart_data = df_tags.head(15).to_dict("records")
+    render_echarts_bar(
+        data=tags_chart_data,
+        x_key="Tag",
+        y_key="Quantidade",
+        horizontal=True,
+        height="500px",
+        key="distribuicao_tags",
     )
-    fig_tags = apply_chart_theme(fig_tags)
-    fig_tags.update_traces(textposition="outside")
-    fig_tags.update_layout(yaxis=dict(categoryorder="total ascending"))  # Ordenar maior→menor
-    st.plotly_chart(fig_tags, key="distribuicao_tags")
 
 
 # ================================================================
@@ -259,3 +262,13 @@ if origin_metrics:
     df_display["TME (min)"] = df_display["TME (min)"].apply(lambda x: f"{x:.1f}")
 
     st.dataframe(df_display, width="stretch", hide_index=True)
+
+    # Exportar para Excel
+    col_export, _ = st.columns([1, 3])
+    with col_export:
+        create_excel_download(
+            df_origins,
+            filename="leads_por_origem",
+            sheet_name="Leads por Origem",
+            key="export_leads",
+        )

@@ -190,22 +190,48 @@ class TestThemeAndColors:
     """Tests for UI helper functions."""
 
     def test_get_theme_mode_default(self, monkeypatch):
-        """Test default theme mode."""
+        """Test default theme mode from Streamlit config."""
         from src import dashboard_utils
 
-        # Mock streamlit
+        # Mock streamlit with session_state
+        class MockSessionState(dict):
+            pass
+
         class MockSt:
+            session_state = MockSessionState()  # Empty session_state
+
             def get_option(self, key):
                 return "light"
 
         monkeypatch.setattr(dashboard_utils, "st", MockSt())
         assert dashboard_utils.get_theme_mode() == "light"
 
+    def test_get_theme_mode_from_session(self, monkeypatch):
+        """Test theme mode from session_state has priority."""
+        from src import dashboard_utils
+
+        class MockSessionState(dict):
+            pass
+
+        class MockSt:
+            session_state = MockSessionState({"theme_mode": "dark"})
+
+            def get_option(self, key):
+                return "light"  # Should be ignored
+
+        monkeypatch.setattr(dashboard_utils, "st", MockSt())
+        assert dashboard_utils.get_theme_mode() == "dark"
+
     def test_get_theme_mode_exception(self, monkeypatch):
         """Test theme mode fallback on exception."""
         from src import dashboard_utils
 
+        class MockSessionState(dict):
+            pass
+
         class MockSt:
+            session_state = MockSessionState()  # Empty
+
             def get_option(self, key):
                 raise Exception("Error")
 
@@ -216,24 +242,34 @@ class TestThemeAndColors:
         """Test color palette for dark mode."""
         from src import dashboard_utils
 
+        class MockSessionState(dict):
+            pass
+
         class MockSt:
+            session_state = MockSessionState({"theme_mode": "dark"})
+
             def get_option(self, key):
                 return "dark"
 
         monkeypatch.setattr(dashboard_utils, "st", MockSt())
         colors = dashboard_utils.get_colors()
-        assert colors["primary"] == "#6366f1"
-        assert colors["text"] == "#e0e0e0"
+        assert colors["primary"] == "#2563eb"
+        assert colors["text"] == "#f8fafc"
 
     def test_get_colors_light(self, monkeypatch):
         """Test color palette for light mode."""
         from src import dashboard_utils
 
+        class MockSessionState(dict):
+            pass
+
         class MockSt:
+            session_state = MockSessionState({"theme_mode": "light"})
+
             def get_option(self, key):
                 return "light"
 
         monkeypatch.setattr(dashboard_utils, "st", MockSt())
         colors = dashboard_utils.get_colors()
-        assert colors["primary"] == "#4f46e5"
-        assert colors["text"] == "#1f2937"
+        assert colors["primary"] == "#1d4ed8"
+        assert colors["text"] == "#0f172a"

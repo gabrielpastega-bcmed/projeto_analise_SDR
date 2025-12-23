@@ -40,7 +40,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry lock
-        poetry install --no-interaction
+        poetry install --no-interaction --all-extras
 
     - name: Run Ruff Linting
       run: poetry run ruff check .
@@ -76,7 +76,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry lock
-        poetry install --no-interaction
+        poetry install --no-interaction --all-extras
 
     - name: Run Mypy
       run: poetry run mypy . --exclude "pages/"
@@ -117,7 +117,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry lock
-        poetry install --no-interaction
+        poetry install --no-interaction --all-extras
 
     - name: Run Tests with Coverage
       run: poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=70
@@ -152,7 +152,7 @@ jobs:
     - name: Install dependencies
       run: |
         poetry lock
-        poetry install --no-interaction
+        poetry install --no-interaction --all-extras
 
     - name: Run Bandit Security Scan
       run: poetry run bandit -r src/ -lll

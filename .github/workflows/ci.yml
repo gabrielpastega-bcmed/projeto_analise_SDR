@@ -38,7 +38,9 @@ jobs:
         key: venv-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock --no-update
+        poetry install --no-interaction
 
     - name: Run Ruff Linting
       run: poetry run ruff check .
@@ -72,7 +74,9 @@ jobs:
         key: venv-${{ runner.os }}-3.12-${{ hashFiles('**/poetry.lock') }}
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock --no-update
+        poetry install --no-interaction
 
     - name: Run Mypy
       run: poetry run mypy . --exclude "pages/"
@@ -111,7 +115,9 @@ jobs:
           venv-${{ runner.os }}-${{ matrix.python-version }}-
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock --no-update
+        poetry install --no-interaction
 
     - name: Run Tests with Coverage
       run: poetry run pytest --cov=src --cov-report=xml --cov-report=term-missing --cov-fail-under=70
@@ -144,7 +150,9 @@ jobs:
         virtualenvs-in-project: true
 
     - name: Install dependencies
-      run: poetry install --no-interaction
+      run: |
+        poetry lock --no-update
+        poetry install --no-interaction
 
     - name: Run Bandit Security Scan
       run: poetry run bandit -r src/ -lll

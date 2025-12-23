@@ -3,7 +3,7 @@ name = "projeto-analise-sdr"
 version = "1.0.0"
 description = "SDR Analytics Dashboard - Sistema de Análise de Atendimento"
 readme = "README.md"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 authors = [
     {name = "Gabriel Pastega", email = "gabriel.pastega@empresa.com.br"}
 ]
@@ -11,6 +11,8 @@ license = "MIT"
 keywords = ["sdr", "analytics", "dashboard", "streamlit"]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
 ]
 

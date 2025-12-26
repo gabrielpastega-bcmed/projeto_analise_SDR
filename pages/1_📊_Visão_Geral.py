@@ -3,6 +3,8 @@ Página: Visão Geral
 KPIs macro, métricas gerais e overview do dashboard.
 """
 
+from datetime import datetime
+
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
@@ -12,7 +14,6 @@ from src.dashboard_utils import (
     TAGS_NAO_CONVERTIDO,
     apply_chart_theme,
     apply_custom_css,
-    apply_filters,
     calculate_delta,
     classify_lead_qualification,
     get_chat_tags,
@@ -38,6 +39,7 @@ apply_custom_css()
 render_user_sidebar()
 COLORS = get_colors()
 
+
 st.title("📊 Visão Geral")
 st.markdown("---")
 
@@ -46,13 +48,38 @@ if "chats" not in st.session_state or not st.session_state.chats:
     st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
     st.stop()
 
-# Aplicar filtros globais
-filters = st.session_state.get("filters", {})
-chats = apply_filters(st.session_state.chats, filters)
+# Advanced Filters
+from src.filters import FilterComponent
+
+filter_component = FilterComponent(key_prefix="visao_geral")
+filter_component.render()
+
+# Apply filters
+chats = filter_component.apply_to_chats(st.session_state.chats)
+
+# Show filter summary and export button
+col1, col2 = st.columns([3, 1])
+with col1:
+    if filter_component.has_active_filters():
+        st.info(f"🔍 Filtros: {filter_component.get_filter_summary()}")
+with col2:
+    if st.button("📥 Exportar Excel", use_container_width=True):
+        from src.excel_export import create_chat_export
+
+        excel_bytes = create_chat_export(chats, filter_component.get_current_filters())
+        st.download_button(
+            label="⬇️ Download",
+            data=excel_bytes,
+            file_name=f"visao_geral_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True,
+        )
 
 if not chats:
     st.warning("⚠️ Nenhum dado encontrado com os filtros aplicados.")
     st.stop()
+
+st.markdown("---")
 
 
 # ================================================================

@@ -137,15 +137,16 @@ class AuthManager:
         # Check for Google OAuth user first
         if st.session_state.get("google_user"):
             google_user = st.session_state.get("google_user")
-            return {
-                "user_id": google_user.get("oauth_id"),
-                "username": google_user.get("name", google_user.get("email", "").split("@")[0]),
-                "email": google_user.get("email"),
-                "role": "user",  # Default role for Google users
-                "is_superadmin": False,  # Google users are not superadmins by default
-                "picture": google_user.get("picture"),
-                "auth_method": "google",
-            }
+            if google_user is not None:  # Type guard for mypy
+                return {
+                    "user_id": google_user.get("oauth_id"),
+                    "username": google_user.get("name", google_user.get("email", "").split("@")[0]),
+                    "email": google_user.get("email"),
+                    "role": "user",  # Default role for Google users
+                    "is_superadmin": False,  # Google users are not superadmins by default
+                    "picture": google_user.get("picture"),
+                    "auth_method": "google",
+                }
 
         # Traditional password user
         return {

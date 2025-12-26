@@ -38,6 +38,7 @@ st.markdown("---")
 # ================================================================
 
 
+@st.cache_data(ttl=300, show_spinner="Carregando semanas...")
 def load_available_weeks():
     """Carrega as semanas disponíveis do BigQuery."""
     try:
@@ -50,6 +51,7 @@ def load_available_weeks():
         return []
 
 
+@st.cache_data(ttl=300, show_spinner="Carregando resultados...")
 def load_week_results(week_start):
     """Carrega resultados de uma semana específica."""
     try:

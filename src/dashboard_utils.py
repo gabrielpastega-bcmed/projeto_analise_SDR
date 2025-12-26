@@ -619,6 +619,31 @@ def render_user_sidebar() -> None:
         st.session_state["theme_mode"] = new_theme
         st.rerun()
 
+    # Alert badge
+    try:
+        from src.auth.alert_service import AlertService
+
+        alert_count = AlertService.get_alert_count()
+        if alert_count > 0:
+            st.sidebar.markdown(
+                f"""
+                <div style="
+                    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+                    color: white;
+                    padding: 8px 12px;
+                    border-radius: 8px;
+                    text-align: center;
+                    margin: 10px 0;
+                    font-weight: 600;
+                ">
+                    🔔 {alert_count} alerta{"s" if alert_count > 1 else ""} ativo{"s" if alert_count > 1 else ""}
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+    except Exception:
+        pass  # Alert service not available
+
     st.sidebar.markdown("---")
 
 

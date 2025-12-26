@@ -1225,6 +1225,7 @@ def render_echarts_bar(
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
+            "valueFormatter": "(value) => typeof value === 'number' ? value.toFixed(2) : value",
             **theme["tooltip"],
         },
         "grid": {
@@ -1390,6 +1391,7 @@ def render_echarts_line(
         "title": {"text": title, **theme["title"]} if title else None,
         "tooltip": {
             "trigger": "axis",
+            "valueFormatter": "(value) => typeof value === 'number' ? value.toFixed(2) : value",
             **theme["tooltip"],
         },
         "grid": {
@@ -1525,6 +1527,7 @@ def render_echarts_bar_gradient(
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
+            "valueFormatter": "(value) => typeof value === 'number' ? value.toFixed(2) : value",
             **theme["tooltip"],
         },
         "grid": {
@@ -1560,6 +1563,146 @@ def render_echarts_bar_gradient(
                 },
             }
         ],
+    }
+
+    st_echarts(options=option, height=height, key=key)
+
+
+def render_echarts_gauge(
+    value: float,
+    title: Optional[str] = None,
+    min_value: float = 0,
+    max_value: float = 100,
+    height: str = "300px",
+    color: Optional[str] = None,
+    key: Optional[str] = None,
+) -> None:
+    """
+    Renderiza um gráfico gauge ECharts para visualização de KPIs.
+
+    Args:
+        value: Valor atual a ser exibido
+        title: Título do gauge
+        min_value: Valor mínimo da escala
+        max_value: Valor máximo da escala
+        height: Altura do gráfico
+        color: Cor personalizada (usa padrão baseado no valor se None)
+        key: Chave única para o componente
+    """
+    from streamlit_echarts import st_echarts
+
+    colors = get_colors()
+    theme = get_echarts_theme()
+
+    # Cor baseada no percentual se não especificada
+    if color is None:
+        pct = (value - min_value) / (max_value - min_value) * 100
+        if pct >= 70:
+            color = colors["success"]
+        elif pct >= 40:
+            color = colors["warning"]
+        else:
+            color = colors["danger"]
+
+    option = {
+        "backgroundColor": "transparent",
+        "title": {"text": title, **theme["title"]} if title else None,
+        "series": [
+            {
+                "type": "gauge",
+                "min": min_value,
+                "max": max_value,
+                "progress": {"show": True, "width": 18},
+                "axisLine": {
+                    "lineStyle": {
+                        "width": 18,
+                        "color": [[1, colors["grid"]]],
+                    }
+                },
+                "axisTick": {"show": False},
+                "splitLine": {"show": False},
+                "axisLabel": {"show": False},
+                "pointer": {"show": False},
+                "anchor": {"show": False},
+                "title": {"show": False},
+                "detail": {
+                    "valueAnimation": True,
+                    "fontSize": 32,
+                    "fontWeight": "bold",
+                    "color": colors["text"],
+                    "formatter": "{value}",
+                    "offsetCenter": [0, "0%"],
+                },
+                "data": [{"value": value, "itemStyle": {"color": color}}],
+            }
+        ],
+    }
+
+    st_echarts(options=option, height=height, key=key)
+
+
+def render_echarts_radar(
+    data: List[Dict],
+    indicators: List[Dict],
+    title: Optional[str] = None,
+    height: str = "400px",
+    key: Optional[str] = None,
+) -> None:
+    """
+    Renderiza um gráfico radar ECharts para comparação de múltiplas dimensões.
+
+    Args:
+        data: Lista de séries [{"name": "Agent1", "values": [80, 90, 70, 85, 60]}]
+        indicators: Lista de indicadores [{"name": "Metric", "max": 100}]
+        title: Título do gráfico
+        height: Altura do gráfico
+        key: Chave única para o componente
+    """
+    from streamlit_echarts import st_echarts
+
+    colors = get_colors()
+    theme = get_echarts_theme()
+
+    # Cores para múltiplas séries
+    series_colors = [
+        colors["primary"],
+        colors["secondary"],
+        colors["success"],
+        colors["warning"],
+        colors["danger"],
+        colors["info"],
+    ]
+
+    series_data = []
+    for i, d in enumerate(data):
+        series_data.append(
+            {
+                "value": d["values"],
+                "name": d.get("name", f"Series {i + 1}"),
+                "itemStyle": {"color": series_colors[i % len(series_colors)]},
+                "areaStyle": {"opacity": 0.2},
+            }
+        )
+
+    option = {
+        "backgroundColor": "transparent",
+        "title": {"text": title, **theme["title"]} if title else None,
+        "tooltip": {**theme["tooltip"]},
+        "legend": {
+            "data": [d.get("name", f"Series {i + 1}") for i, d in enumerate(data)],
+            "bottom": "5%",
+            **theme["legend"],
+        },
+        "radar": {
+            "indicator": indicators,
+            "shape": "polygon",
+            "splitNumber": 4,
+            "axisName": {"color": colors["text_muted"], "fontSize": 12},
+            "splitLine": {"lineStyle": {"color": colors["grid"]}},
+            "splitArea": {"show": False},
+            "axisLine": {"lineStyle": {"color": colors["grid"]}},
+        },
+        "series": [{"type": "radar", "data": series_data}],
     }
 
     st_echarts(options=option, height=height, key=key)

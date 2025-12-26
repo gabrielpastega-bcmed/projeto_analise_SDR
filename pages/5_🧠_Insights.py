@@ -7,9 +7,10 @@ Consulta resultados armazenados no BigQuery - sem chamar LLM na visualização.
 import streamlit as st
 
 from src.dashboard_utils import (
-    apply_chart_theme,
     apply_custom_css,
     get_colors,
+    render_echarts_bar,
+    render_echarts_pie,
     render_user_sidebar,
     setup_plotly_theme,
 )
@@ -37,6 +38,7 @@ st.markdown("---")
 # ================================================================
 
 
+@st.cache_data(ttl=300, show_spinner="Carregando semanas...")
 def load_available_weeks():
     """Carrega as semanas disponíveis do BigQuery."""
     try:
@@ -49,6 +51,7 @@ def load_available_weeks():
         return []
 
 
+@st.cache_data(ttl=300, show_spinner="Carregando resultados...")
 def load_week_results(week_start):
     """Carrega resultados de uma semana específica."""
     try:
@@ -164,75 +167,50 @@ if weeks:
         with col_left:
             st.subheader("😊 Distribuição de Sentimento")
 
-            import pandas as pd
-            import plotly.express as px
-
             sentiment_data = aggregated["cx"]["sentiment_distribution"]
-            df_sentiment = pd.DataFrame(
-                [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
+            sentiment_chart_data = [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
+            color_map = {
+                "Positivo": COLORS["success"],
+                "Neutro": COLORS["warning"],
+                "Negativo": COLORS["danger"],
+            }
+            render_echarts_pie(
+                data=sentiment_chart_data,
+                name_key="Sentimento",
+                value_key="Quantidade",
+                color_map=color_map,
+                height="350px",
+                key="sentiment_distribution_bq",
             )
 
-            fig_sentiment = px.pie(
-                df_sentiment,
-                values="Quantidade",
-                names="Sentimento",
-                color="Sentimento",
-                color_discrete_map={
-                    "Positivo": COLORS["success"],
-                    "Neutro": COLORS["warning"],
-                    "Negativo": COLORS["danger"],
-                },
-                hole=0.4,
-            )
-            fig_sentiment = apply_chart_theme(fig_sentiment)
-            st.plotly_chart(fig_sentiment, key="sentiment_distribution_1")
-
-        # Funil de Vendas
         with col_right:
             st.subheader("📈 Resultados de Vendas")
 
-            import pandas as pd
-            import plotly.express as px
-
             outcome_data = aggregated["sales"]["outcome_distribution"]
-            df_outcome = pd.DataFrame([{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()])
-
-            fig_outcome = px.bar(
-                df_outcome,
-                x="Resultado",
-                y="Quantidade",
-                color="Resultado",
-                color_discrete_map={
-                    "Convertido": COLORS["success"],
-                    "Perdido": COLORS["danger"],
-                    "Em andamento": COLORS["info"],
-                },
+            outcome_chart_data = [{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()]
+            render_echarts_bar(
+                data=outcome_chart_data,
+                x_key="Resultado",
+                y_key="Quantidade",
+                horizontal=False,
+                height="350px",
+                key="outcome_distribution_bq",
             )
-            fig_outcome = apply_chart_theme(fig_outcome)
-            fig_outcome.update_layout(showlegend=False)
-            st.plotly_chart(fig_outcome, key="outcome_distribution_1")
 
         # Top Produtos
         if aggregated["product"]["top_products"]:
             st.markdown("---")
             st.subheader("🏆 Produtos Mais Mencionados")
 
-            df_products = pd.DataFrame(
-                aggregated["product"]["top_products"],
-                columns=["Produto", "Menções"],
+            products_chart_data = [{"Produto": p[0], "Menções": p[1]} for p in aggregated["product"]["top_products"]]
+            render_echarts_bar(
+                data=products_chart_data,
+                x_key="Produto",
+                y_key="Menções",
+                horizontal=True,
+                height="400px",
+                key="products_mentioned_bq",
             )
-
-            fig_products = px.bar(
-                df_products,
-                x="Menções",
-                y="Produto",
-                orientation="h",
-                color="Menções",
-                color_continuous_scale=[[0, COLORS["info"]], [1, COLORS["primary"]]],
-            )
-            fig_products = apply_chart_theme(fig_products)
-            fig_products.update_layout(showlegend=False, coloraxis_showscale=False)
-            st.plotly_chart(fig_products, key="products_mentioned")
 
         # Detalhes
         st.markdown("---")
@@ -452,58 +430,38 @@ if "test_results" in st.session_state and st.session_state["test_results"]:
         col4.metric("Taxa de Conversão", f"{test_aggregated['sales']['conversion_rate']:.1f}%")
 
         # Gráficos agregados
-        import pandas as pd
-        import plotly.express as px
-
         col_left, col_right = st.columns(2)
 
         with col_left:
             st.markdown("**😊 Distribuição de Sentimento**")
             sentiment_data = test_aggregated["cx"]["sentiment_distribution"]
-            df_sentiment = pd.DataFrame(
-                [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
+            sentiment_chart_data = [{"Sentimento": k.capitalize(), "Quantidade": v} for k, v in sentiment_data.items()]
+            color_map = {
+                "Positivo": COLORS["success"],
+                "Neutro": COLORS["warning"],
+                "Negativo": COLORS["danger"],
+            }
+            render_echarts_pie(
+                data=sentiment_chart_data,
+                name_key="Sentimento",
+                value_key="Quantidade",
+                color_map=color_map,
+                height="350px",
+                key="sentiment_distribution_local",
             )
-            # Ordenar por quantidade
-            df_sentiment = df_sentiment.sort_values("Quantidade", ascending=False)
-            fig_sentiment = px.pie(
-                df_sentiment,
-                values="Quantidade",
-                names="Sentimento",
-                color="Sentimento",
-                color_discrete_map={
-                    "Positivo": COLORS["success"],
-                    "Neutro": COLORS["warning"],
-                    "Negativo": COLORS["danger"],
-                },
-                hole=0.4,
-            )
-            # Labels visíveis com valor e porcentagem
-            fig_sentiment.update_traces(textinfo="value+percent", textposition="outside")
-            fig_sentiment = apply_chart_theme(fig_sentiment)
-            st.plotly_chart(fig_sentiment, key="sentiment_distribution_2")
 
         with col_right:
             st.markdown("**📈 Resultados de Vendas**")
             outcome_data = test_aggregated["sales"]["outcome_distribution"]
-            df_outcome = pd.DataFrame([{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()])
-            # Ordenar por quantidade (maior → menor)
-            df_outcome = df_outcome.sort_values("Quantidade", ascending=False)
-            fig_outcome = px.bar(
-                df_outcome,
-                x="Resultado",
-                y="Quantidade",
-                color="Resultado",
-                color_discrete_map={
-                    "Convertido": COLORS["success"],
-                    "Perdido": COLORS["danger"],
-                    "Em andamento": COLORS["info"],
-                },
-                text="Quantidade",  # Labels visíveis
+            outcome_chart_data = [{"Resultado": k.capitalize(), "Quantidade": v} for k, v in outcome_data.items()]
+            render_echarts_bar(
+                data=outcome_chart_data,
+                x_key="Resultado",
+                y_key="Quantidade",
+                horizontal=False,
+                height="350px",
+                key="outcome_distribution_local",
             )
-            fig_outcome = apply_chart_theme(fig_outcome)
-            fig_outcome.update_traces(textposition="outside")
-            fig_outcome.update_layout(showlegend=False)
-            st.plotly_chart(fig_outcome, key="outcome_distribution_2")
 
     st.markdown("---")
 

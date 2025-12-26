@@ -14,7 +14,12 @@ from .database import SessionLocal
 from .models import AuditLog, User
 
 
-def log_action(user_id: int, action: str, resource: Optional[str] = None, details: Optional[dict] = None) -> None:
+def log_action(
+    user_id: int,
+    action: str,
+    resource: Optional[str] = None,
+    details: Optional[dict] = None,
+) -> None:
     """
     Log user action to audit log.
 
@@ -27,7 +32,10 @@ def log_action(user_id: int, action: str, resource: Optional[str] = None, detail
     db = SessionLocal()
     try:
         log_entry = AuditLog(
-            user_id=user_id, action=action, resource=resource, details=json.dumps(details) if details else None
+            user_id=user_id,
+            action=action,
+            resource=resource,
+            details=json.dumps(details) if details else None,
         )
         db.add(log_entry)
         db.commit()
@@ -68,7 +76,12 @@ class AuthManager:
             else:
                 # Log failed login attempt
                 if user:
-                    log_action(user.id, "login", None, {"success": False, "reason": "invalid_password"})
+                    log_action(
+                        user.id,
+                        "login",
+                        None,
+                        {"success": False, "reason": "invalid_password"},
+                    )
 
                 return None
 
@@ -100,7 +113,15 @@ class AuthManager:
         Returns:
             True if user is logged in, False otherwise
         """
-        return "user_id" in st.session_state and st.session_state.get("user_id") is not None
+        # Check traditional password login
+        if "user_id" in st.session_state and st.session_state.get("user_id") is not None:
+            return True
+
+        # Check Google OAuth login
+        if st.session_state.get("connected", False) and st.session_state.get("google_user"):
+            return True
+
+        return False
 
     @staticmethod
     def get_current_user() -> Optional[dict]:
@@ -113,12 +134,27 @@ class AuthManager:
         if not AuthManager.is_authenticated():
             return None
 
+        # Check for Google OAuth user first
+        if st.session_state.get("google_user"):
+            google_user = st.session_state.get("google_user")
+            return {
+                "user_id": google_user.get("oauth_id"),
+                "username": google_user.get("name", google_user.get("email", "").split("@")[0]),
+                "email": google_user.get("email"),
+                "role": "user",  # Default role for Google users
+                "is_superadmin": False,  # Google users are not superadmins by default
+                "picture": google_user.get("picture"),
+                "auth_method": "google",
+            }
+
+        # Traditional password user
         return {
             "user_id": st.session_state.get("user_id"),
             "username": st.session_state.get("username"),
             "email": st.session_state.get("email"),
             "role": st.session_state.get("role"),
             "is_superadmin": st.session_state.get("is_superadmin", False),
+            "auth_method": "password",
         }
 
     @staticmethod

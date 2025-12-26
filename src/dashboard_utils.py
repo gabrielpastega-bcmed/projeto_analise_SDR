@@ -1225,6 +1225,7 @@ def render_echarts_bar(
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
+            "valueFormatter": "(value) => typeof value === 'number' ? value.toFixed(2) : value",
             **theme["tooltip"],
         },
         "grid": {
@@ -1390,6 +1391,7 @@ def render_echarts_line(
         "title": {"text": title, **theme["title"]} if title else None,
         "tooltip": {
             "trigger": "axis",
+            "valueFormatter": "(value) => typeof value === 'number' ? value.toFixed(2) : value",
             **theme["tooltip"],
         },
         "grid": {
@@ -1525,6 +1527,7 @@ def render_echarts_bar_gradient(
         "tooltip": {
             "trigger": "axis",
             "axisPointer": {"type": "shadow"},
+            "valueFormatter": "(value) => typeof value === 'number' ? value.toFixed(2) : value",
             **theme["tooltip"],
         },
         "grid": {

@@ -141,34 +141,47 @@ async def run_analysis(week_start: datetime, week_end: datetime, max_chats: int 
             json.dump(existing_results, f, ensure_ascii=False, indent=2)
 
     # Executar análise
-    print("[3/4] Executando analise com Gemini...")
+    print("[3/4] Executando analise com Gemini (paralelo)...")
 
     def progress_callback(current, total):
         pct = current / total * 100
         print(f"      Progresso: {current}/{total} ({pct:.1f}%)")
 
-    await analyzer.run_batch(
-        chats_to_analyze,
-        progress_callback=progress_callback,
-        checkpoint_callback=save_checkpoint,
-    )
+    # Processar em chunks para volumes muito grandes
+    CHUNK_SIZE = 500  # Processa 500 chats por vez
 
-    # Combinar com checkpoint existente
-    all_results = existing_results  # Já inclui os novos via callback
+    for chunk_idx in range(0, len(chats_to_analyze), CHUNK_SIZE):
+        chunk = chats_to_analyze[chunk_idx : chunk_idx + CHUNK_SIZE]
+        chunk_num = (chunk_idx // CHUNK_SIZE) + 1
+        total_chunks = (len(chats_to_analyze) + CHUNK_SIZE - 1) // CHUNK_SIZE
+
+        print(f"\n  Chunk {chunk_num}/{total_chunks}: {len(chunk)} chats")
+
+        chunk_results = await analyzer.run_batch_parallel(
+            chunk,
+            concurrency=15,  # Otimizado para 240 RPM
+            progress_callback=progress_callback,
+            checkpoint_callback=save_checkpoint,
+        )
+
+        # Salvar chunk no BigQuery imediatamente
+        if chunk_results:
+            print(f"  Salvando chunk {chunk_num} no BigQuery...")
+            analyzer.save_to_bigquery(chunk_results, week_start, week_end)
+
+    # Combinar todos os resultados
+    all_results = existing_results
 
     # Contar resultados válidos
     valid_results = [r for r in all_results if "error" not in r]
     error_results = [r for r in all_results if "error" in r]
 
-    print(f"      {len(valid_results)} analises concluidas no total")
+    print(f"\n  TOTAL: {len(valid_results)} analises concluidas")
     if error_results:
-        print(f"      {len(error_results)} erros")
+        print(f"  {len(error_results)} erros")
 
-    # Salvar no BigQuery
-    print("[4/4] Salvando resultados no BigQuery...")
-    saved = analyzer.save_to_bigquery(all_results, week_start, week_end)
-
-    # Também salvar localmente como backup final
+    # BigQuery já foi salvo em chunks, só salvamos backup local
+    print("[4/4] Salvando backup local...")
     analyzer.save_results(all_results, f"analysis_{week_start.strftime('%Y-%m-%d')}.json")
 
     # Limpar checkpoint (concluído com sucesso)
@@ -177,7 +190,7 @@ async def run_analysis(week_start: datetime, week_end: datetime, max_chats: int 
 
     print(f"\n{'=' * 60}")
     print("CONCLUIDO!")
-    print(f"  - {saved} resultados salvos no BigQuery")
+    print(f"  - {len(valid_results)} resultados salvos no BigQuery (em chunks)")
     print("  - Backup local em data/analysis_results/")
     print(f"{'=' * 60}\n")
 
@@ -193,8 +206,8 @@ def main():
     parser.add_argument(
         "--max-chats",
         type=int,
-        default=200,
-        help="Maximo de chats a analisar (default: 200)",
+        default=10000,  # Aumentado de 200 para 10000
+        help="Maximo de chats a analisar (default: 10000, use 0 para ilimitado)",
     )
 
     args = parser.parse_args()

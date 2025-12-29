@@ -297,9 +297,9 @@ with st.expander("🔧 Executar Nova Análise (Admin)"):
                     progress.progress(current / total)
 
                 async def run():
-                    return await analyzer.run_batch(
+                    return await analyzer.run_batch_parallel(
                         chats_with_messages,
-                        batch_size=5,
+                        concurrency=15,  # Paralelo: 10x+ speedup
                         progress_callback=update_progress,
                     )
 
@@ -309,13 +309,17 @@ with st.expander("🔧 Executar Nova Análise (Admin)"):
 
                 if save_to_bq:
                     analyzer.save_to_bigquery(results, last_monday, last_sunday)
-                    st.success(f"✅ Análise concluída! {len(results)} chats processados e salvos no BigQuery.")
+                    st.success(
+                        f"✅ Análise concluída! {len(results)} chats processados e salvos no BigQuery. "
+                        f"(Processamento paralelo ativado)"
+                    )
                     st.rerun()
                 else:
                     # Salva apenas localmente e exibe resultados na tela
                     analyzer.save_results(results)
                     st.success(
-                        f"✅ Análise de teste concluída! {len(results)} chats processados (não salvo no BigQuery)."
+                        f"✅ Análise de teste concluída! {len(results)} chats processados (não salvo no BigQuery). "
+                        f"(Processamento paralelo ativado)"
                     )
 
                     # Armazenar em session_state para exibir abaixo

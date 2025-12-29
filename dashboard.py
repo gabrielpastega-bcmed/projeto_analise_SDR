@@ -1,10 +1,18 @@
 """
-Dashboard Principal - Entry Point
-Carrega dados e configura filtros globais para as páginas.
+Dashboard Principal: Analytics de Atendimentos SDR.
+
+Entry point para o sistema de análise de conversas.
 """
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Initialize observability (Sentry) - must be before other imports
 import nest_asyncio
 import streamlit as st
+
+from src.observability import sentry_config  # noqa: F401
 
 # Apply nest_asyncio to allow nested event loops in Streamlit
 # This MUST run before importing modules that use asyncio

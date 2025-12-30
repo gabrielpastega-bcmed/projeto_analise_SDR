@@ -1,0 +1,148 @@
+name: Weekly Chat Analysis
+
+on:
+  schedule:
+    # Toda segunda-feira às 6AM UTC (3AM BRT)
+    - cron: '0 6 * * 1'
+  workflow_dispatch:  # Permite trigger manual também
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120  # 2 horas max para análises grandes
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-poetry-
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction --no-root
+
+      - name: Setup GCP Credentials
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GCP_SA_KEY" > /tmp/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+
+      - name: Run Weekly Analysis
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
+          BIGQUERY_DATASET_ID: ${{ secrets.BIGQUERY_DATASET_ID }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_ENABLED: 'true'
+        run: |
+          echo "Starting weekly analysis..."
+          poetry run python scripts/run_weekly_analysis.py --max-chats 10000
+          echo "Analysis completed successfully!"
+
+      - name: Upload Analysis Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: analysis-results-${{ github.run_number }}
+          path: data/analysis_results/*.json
+          retention-days: 30
+
+      - name: Generate Summary
+        if: success()
+        run: |
+          echo "## ✅ Weekly Analysis Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Number:** ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Timestamp:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          # Contar arquivos de resultado
+          RESULT_COUNT=$(ls -1 data/analysis_results/*.json 2>/dev/null | wc -l)
+          echo "**Result Files:** $RESULT_COUNT" >> $GITHUB_STEP_SUMMARY
+
+          if [ -f "data/analysis_results/analysis_$(date +%Y-%m-%d).json" ]; then
+            CHAT_COUNT=$(jq 'length' data/analysis_results/analysis_$(date +%Y-%m-%d).json)
+            echo "**Chats Analyzed:** $CHAT_COUNT" >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Notify Success
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ✅ Weekly Analysis Completed - Run #${{ github.run_number }}
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          html_body: |
+            <h2>✅ Análise Semanal Concluída</h2>
+
+            <p><strong>Status:</strong> Sucesso ✅</p>
+            <p><strong>Run:</strong> #${{ github.run_number }}</p>
+            <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+            <p><strong>Timestamp:</strong> ${{ github.event.head_commit.timestamp }}</p>
+
+            <h3>Links:</h3>
+            <ul>
+              <li><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Ver Logs</a></li>
+              <li><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts">Download Results</a></li>
+            </ul>
+
+            <p>Os resultados foram salvos no BigQuery e estão disponíveis no dashboard.</p>
+
+      - name: Notify Failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ❌ Weekly Analysis FAILED - Run #${{ github.run_number }}
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          html_body: |
+            <h2>❌ Análise Semanal FALHOU</h2>
+
+            <p><strong>Status:</strong> Falha ❌</p>
+            <p><strong>Run:</strong> #${{ github.run_number }}</p>
+            <p><strong>Branch:</strong> ${{ github.ref_name }}</p>
+
+            <p><strong>Erro:</strong> A análise semanal encontrou um erro e não foi concluída.</p>
+
+            <h3>Próximos Passos:</h3>
+            <ol>
+              <li>Verifique os <a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">logs detalhados</a></li>
+              <li>Identifique o erro (credenciais, API limits, etc.)</li>
+              <li>Corrija o problema</li>
+              <li>Execute manualmente se necessário</li>
+            </ol>
+
+            <p><em>Este é um alerta automático. Por favor, investigue o mais rápido possível.</em></p>
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -f /tmp/gcp-key.json

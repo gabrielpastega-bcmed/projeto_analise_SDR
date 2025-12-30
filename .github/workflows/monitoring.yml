@@ -1,0 +1,170 @@
+name: Daily Monitoring
+
+on:
+  schedule:
+    # Todo dia às 6AM UTC (3AM BRT)
+    - cron: '0 6 * * *'
+  workflow_dispatch:  # Permite trigger manual
+
+jobs:
+  check-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check Last Weekly Analysis
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "🔍 Checking last weekly analysis run..."
+
+          # Buscar último run do workflow weekly_analysis
+          LAST_RUN=$(gh api \
+            repos/${{ github.repository }}/actions/workflows/weekly_analysis.yml/runs \
+            --jq '.workflow_runs[0]')
+
+          if [ -z "$LAST_RUN" ]; then
+            echo "❌ No workflow runs found"
+            echo "status=no_runs" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Extrair informações
+          STATUS=$(echo "$LAST_RUN" | jq -r '.conclusion')
+          CREATED_AT=$(echo "$LAST_RUN" | jq -r '.created_at')
+          RUN_ID=$(echo "$LAST_RUN" | jq -r '.id')
+
+          echo "Last run status: $STATUS"
+          echo "Last run created: $CREATED_AT"
+          echo "Run ID: $RUN_ID"
+
+          # Calcular dias desde última execução
+          CREATED_TIMESTAMP=$(date -d "$CREATED_AT" +%s)
+          NOW_TIMESTAMP=$(date +%s)
+          DAYS_AGO=$(( ($NOW_TIMESTAMP - $CREATED_TIMESTAMP) / 86400 ))
+
+          echo "Days since last run: $DAYS_AGO"
+
+          # Verificações
+          if [ "$STATUS" != "success" ]; then
+            echo "⚠️ Last run failed: $STATUS"
+            echo "status=failed" >> $GITHUB_OUTPUT
+            echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          if [ $DAYS_AGO -gt 8 ]; then
+            echo "⚠️ Last successful run was $DAYS_AGO days ago (> 8 days)"
+            echo "status=stale" >> $GITHUB_OUTPUT
+            echo "days_ago=$DAYS_AGO" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          echo "✅ Weekly analysis is healthy"
+          echo "status=healthy" >> $GITHUB_OUTPUT
+
+      - name: Check BigQuery Data Freshness
+        if: always()
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "📊 Checking BigQuery data freshness..."
+
+          # Setup credentials
+          echo "$GCP_SA_KEY" > /tmp/gcp-key.json
+          export GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+
+          # Install bq CLI
+          sudo apt-get update && sudo apt-get install -y google-cloud-sdk
+
+          # Query última análise
+          QUERY="SELECT MAX(analyzed_at) as last_analysis
+                 FROM \`${{ secrets.BIGQUERY_PROJECT_ID }}.${{ secrets.BIGQUERY_DATASET_ID }}.octadesk_analysis_results\`"
+
+          LAST_ANALYSIS=$(bq query --use_legacy_sql=false --format=json "$QUERY" | jq -r '.[0].last_analysis')
+
+          if [ -z "$LAST_ANALYSIS" ] || [ "$LAST_ANALYSIS" = "null" ]; then
+            echo "⚠️ No analysis data found in BigQuery"
+          else
+            echo "Last analysis in BigQuery: $LAST_ANALYSIS"
+
+            # Calcular idade
+            LAST_TIMESTAMP=$(date -d "$LAST_ANALYSIS" +%s 2>/dev/null || echo "0")
+            if [ "$LAST_TIMESTAMP" != "0" ]; then
+              NOW_TIMESTAMP=$(date +%s)
+              HOURS_AGO=$(( ($NOW_TIMESTAMP - $LAST_TIMESTAMP) / 3600 ))
+              echo "Hours since last analysis: $HOURS_AGO"
+
+              if [ $HOURS_AGO -gt 192 ]; then  # 8 dias
+                echo "⚠️ Data is stale (> 8 days old)"
+              else
+                echo "✅ BigQuery data is fresh"
+              fi
+            fi
+          fi
+
+          rm -f /tmp/gcp-key.json
+
+      - name: Generate Health Report
+        if: always()
+        run: |
+          echo "# 📊 Daily Health Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Date:** $(date -u)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ steps.check.outputs.status }}" = "healthy" ]; then
+            echo "## ✅ System Healthy" >> $GITHUB_STEP_SUMMARY
+            echo "Weekly analysis is running as expected." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⚠️ Issues Detected" >> $GITHUB_STEP_SUMMARY
+            echo "**Status:** ${{ steps.check.outputs.status }}" >> $GITHUB_STEP_SUMMARY
+
+            if [ -n "${{ steps.check.outputs.days_ago }}" ]; then
+              echo "**Days since last run:** ${{ steps.check.outputs.days_ago }}" >> $GITHUB_STEP_SUMMARY
+            fi
+          fi
+
+      - name: Alert on Issues
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ⚠️ Monitoring Alert - Weekly Analysis Issues Detected
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: GitHub Actions Monitor <${{ secrets.MAIL_USERNAME }}>
+          html_body: |
+            <h2>⚠️ Monitoring Alert</h2>
+
+            <p>Issues detected with the weekly analysis automation:</p>
+
+            <h3>Status:</h3>
+            <ul>
+              <li><strong>Check Status:</strong> ${{ steps.check.outputs.status || 'unknown' }}</li>
+              <li><strong>Timestamp:</strong> $(date -u)</li>
+            </ul>
+
+            <h3>Possible Issues:</h3>
+            <ul>
+              <li>Last run failed</li>
+              <li>No recent runs (> 8 days)</li>
+              <li>BigQuery data is stale</li>
+            </ul>
+
+            <h3>Actions Required:</h3>
+            <ol>
+              <li><a href="${{ github.server_url }}/${{ github.repository }}/actions/workflows/weekly_analysis.yml">Check Weekly Analysis Workflow</a></li>
+              <li>Review recent runs for errors</li>
+              <li>Verify secrets and credentials are valid</li>
+              <li>Run manual analysis if needed</li>
+            </ol>
+
+            <p><em>This is an automated monitoring alert.</em></p>

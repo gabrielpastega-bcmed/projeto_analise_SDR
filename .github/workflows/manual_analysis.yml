@@ -1,0 +1,141 @@
+name: Manual Chat Analysis
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_chats:
+        description: 'Máximo de chats a analisar'
+        required: false
+        default: '1000'
+        type: number
+      week_start:
+        description: 'Início da semana (YYYY-MM-DD, deixe vazio para semana anterior)'
+        required: false
+        default: ''
+        type: string
+      save_to_bigquery:
+        description: 'Salvar resultados no BigQuery'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Cache Poetry dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pypoetry
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: poetry install --no-interaction --no-root
+
+      - name: Setup GCP Credentials
+        if: ${{ inputs.save_to_bigquery }}
+        env:
+          GCP_SA_KEY: ${{ secrets.GCP_SA_KEY }}
+        run: |
+          echo "$GCP_SA_KEY" > /tmp/gcp-key.json
+          echo "GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json" >> $GITHUB_ENV
+
+      - name: Build Command Arguments
+        id: args
+        run: |
+          ARGS="--max-chats ${{ inputs.max_chats }}"
+
+          if [ -n "${{ inputs.week_start }}" ]; then
+            ARGS="$ARGS --week ${{ inputs.week_start }}"
+          fi
+
+          echo "cmd_args=$ARGS" >> $GITHUB_OUTPUT
+          echo "Running with args: $ARGS"
+
+      - name: Run Analysis
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BIGQUERY_PROJECT_ID: ${{ secrets.BIGQUERY_PROJECT_ID }}
+          BIGQUERY_DATASET_ID: ${{ secrets.BIGQUERY_DATASET_ID }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          REDIS_ENABLED: 'true'
+        run: |
+          echo "🚀 Starting manual analysis..."
+          echo "Parameters:"
+          echo "  - Max chats: ${{ inputs.max_chats }}"
+          echo "  - Week start: ${{ inputs.week_start || 'Auto (last week)' }}"
+          echo "  - Save to BigQuery: ${{ inputs.save_to_bigquery }}"
+          echo ""
+
+          poetry run python scripts/run_weekly_analysis.py ${{ steps.args.outputs.cmd_args }}
+
+          echo "✅ Analysis completed!"
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manual-analysis-${{ github.run_number }}
+          path: data/analysis_results/*.json
+          retention-days: 30
+
+      - name: Generate Summary
+        if: success()
+        run: |
+          echo "## ✅ Manual Analysis Completed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Parameters:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Max Chats: ${{ inputs.max_chats }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Week Start: ${{ inputs.week_start || 'Auto (last week)' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Save to BigQuery: ${{ inputs.save_to_bigquery }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Run Info:**" >> $GITHUB_STEP_SUMMARY
+          echo "- Run Number: ${{ github.run_number }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Triggered by: @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Timestamp: $(date -u)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Notify Completion
+        if: success()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.MAIL_USERNAME }}
+          password: ${{ secrets.MAIL_PASSWORD }}
+          subject: ✅ Manual Analysis Completed - ${{ inputs.max_chats }} chats
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: GitHub Actions <${{ secrets.MAIL_USERNAME }}>
+          html_body: |
+            <h2>✅ Análise Manual Concluída</h2>
+
+            <p><strong>Triggered by:</strong> @${{ github.actor }}</p>
+
+            <h3>Parâmetros:</h3>
+            <ul>
+              <li><strong>Max Chats:</strong> ${{ inputs.max_chats }}</li>
+              <li><strong>Week Start:</strong> ${{ inputs.week_start || 'Auto (last week)' }}</li>
+              <li><strong>Saved to BigQuery:</strong> ${{ inputs.save_to_bigquery }}</li>
+            </ul>
+
+            <p><a href="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}">Ver Logs</a></p>
+
+      - name: Cleanup
+        if: always()
+        run: rm -f /tmp/gcp-key.json

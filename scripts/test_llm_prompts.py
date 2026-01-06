@@ -116,7 +116,7 @@ async def main():
         if result:
             results.append({"chat_id": chat.id, "analysis": result})
 
-        # Salvar progresso após cada chat
+        # Salvar progresso apos cada chat
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(results, f, ensure_ascii=False, indent=2)
         print(f"\n[Progresso salvo: {len(results)} chats em {output_file}]")

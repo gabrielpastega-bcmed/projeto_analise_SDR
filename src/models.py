@@ -26,8 +26,12 @@ class Contact(BaseModel):
     id: str = Field(description="ID único do contato.")
     name: str = Field(description="Nome do contato.")
     email: Optional[str] = Field(None, description="Email do contato.")
-    organization: Optional[Organization] = Field(None, description="Organização associada.")
-    customFields: Optional[Dict[str, Any]] = Field(None, description="Campos customizados.")
+    organization: Optional[Organization] = Field(
+        None, description="Organização associada."
+    )
+    customFields: Optional[Dict[str, Any]] = Field(
+        None, description="Campos customizados."
+    )
 
 
 class Agent(BaseModel):
@@ -59,7 +63,9 @@ class Message(BaseModel):
     chatId: str = Field(description="ID da conversa à qual a mensagem pertence.")
 
     # Campo computado para análise posterior
-    is_business_hour: bool = Field(False, description="Indica se a mensagem foi enviada em horário comercial.")
+    is_business_hour: bool = Field(
+        False, description="Indica se a mensagem foi enviada em horário comercial."
+    )
 
 
 class ClosedInfo(BaseModel):
@@ -83,21 +89,42 @@ class Chat(BaseModel):
     messages: List[Message] = Field(description="Lista de mensagens da conversa.")
     status: str = Field(description="Status atual (ex: 'open', 'closed').")
     closed: Optional[ClosedInfo] = Field(None, description="Detalhes de fechamento.")
-    waitingTime: Optional[int] = Field(None, description="Tempo até primeira resposta humana (segundos).")
-    tags: Optional[List[Dict[str, Any]]] = Field(None, description="Tags associadas à conversa.")
+    waitingTime: Optional[int] = Field(
+        None, description="Tempo até primeira resposta humana (segundos)."
+    )
+    tags: Optional[List[Dict[str, Any]]] = Field(
+        None, description="Tags associadas à conversa."
+    )
 
     # Novos campos do BigQuery
-    pastAgents: Optional[List[Agent]] = Field(None, description="Agentes anteriores que atenderam.")
-    firstMessageDate: Optional[datetime] = Field(None, description="Data da primeira mensagem.")
-    lastMessageDate: Optional[datetime] = Field(None, description="Data da última mensagem.")
+    pastAgents: Optional[List[Agent]] = Field(
+        None, description="Agentes anteriores que atenderam."
+    )
+    firstMessageDate: Optional[datetime] = Field(
+        None, description="Data da primeira mensagem."
+    )
+    lastMessageDate: Optional[datetime] = Field(
+        None, description="Data da última mensagem."
+    )
     messagesCount: Optional[int] = Field(None, description="Contagem de mensagens.")
     withBot: Optional[str] = Field(None, description="Se passou pelo bot (true/false).")
-    unreadMessages: Optional[str] = Field(None, description="Mensagens não lidas (true/false).")
+    unreadMessages: Optional[str] = Field(
+        None, description="Mensagens não lidas (true/false)."
+    )
     octavia_analysis: Optional[str] = Field(None, description="Análise da Octavia IA.")
 
     # Métricas computadas que podem ser preenchidas durante a análise
-    duration_seconds: Optional[float] = Field(None, description="Duração total da conversa em segundos.")
+    duration_seconds: Optional[float] = Field(
+        None, description="Duração total da conversa em segundos."
+    )
     message_count: int = Field(0, description="Número total de mensagens na conversa.")
+
+    # Campos de Analise AI (Postgres)
+    sales_outcome: Optional[str] = Field(
+        None, description="Resultado da qualificacao SDR (AI)."
+    )
+    sales_stage: Optional[str] = Field(None, description="Estagio do funil SDR (AI).")
+    qa_score: Optional[int] = Field(None, description="Nota de qualidade QA (AI).")
 
     @field_validator("number", mode="before")
     @classmethod
@@ -133,5 +160,7 @@ class Chat(BaseModel):
             try:
                 return json.loads(v)
             except json.JSONDecodeError:
-                return {}  # Retorna um dict vazio para forçar o erro de validação do Pydantic
+                return (
+                    {}
+                )  # Retorna um dict vazio para forçar o erro de validação do Pydantic
         return v

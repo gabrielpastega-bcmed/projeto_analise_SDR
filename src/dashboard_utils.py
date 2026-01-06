@@ -188,7 +188,6 @@ def get_premium_layout() -> Dict[str, Any]:
     Retorna configurações de layout premium para gráficos Plotly.
     """
     colors = get_colors()
-    get_theme_mode() == "dark"
 
     return {
         "paper_bgcolor": colors["chart_bg"],
@@ -331,7 +330,10 @@ def is_human_agent_message(message: Dict) -> bool:
 def get_chat_tags(chat) -> List[str]:
     """Extrai lista de nomes de tags de um chat."""
     if hasattr(chat, "tags") and chat.tags:
-        return [tag.get("name", "") if isinstance(tag, dict) else str(tag) for tag in chat.tags]
+        return [
+            tag.get("name", "") if isinstance(tag, dict) else str(tag)
+            for tag in chat.tags
+        ]
     return []
 
 
@@ -347,6 +349,32 @@ def classify_lead_qualification(tags: List[str]) -> str:
     return "sem_tag"
 
 
+def get_lead_status(chat) -> str:
+    """
+    Retorna o status unificado do lead, priorizando a análise da IA (sales_outcome).
+
+    Regra de precedência:
+    1. chat.sales_outcome (Campo populado pelo backend/Postgres)
+    2. Tags do chat (chat.tags)
+
+    Returns:
+        One of: 'qualificado', 'nao_qualificado', 'outro', 'sem_tag'
+    """
+    # 1. Tentar sales_outcome do Postgres/AI
+    if hasattr(chat, "sales_outcome") and chat.sales_outcome:
+        outcome = chat.sales_outcome.lower().strip()
+
+        # Mapeamento direto dos outcomes do LLM
+        if outcome == "qualificado":
+            return "qualificado"
+        if outcome == "nao_qualificado":
+            return "nao_qualificado"
+
+    # 2. Fallback para tags (comportamento original)
+    tags = get_chat_tags(chat)
+    return classify_lead_qualification(tags)
+
+
 def get_lead_origin(chat) -> str:
     """Extrai a origem do lead do customFields do contato."""
     try:
@@ -355,7 +383,12 @@ def get_lead_origin(chat) -> str:
             if custom_fields and isinstance(custom_fields, dict):
                 origin = custom_fields.get("origem_do_negocio", None)
                 # Tratar null, None, vazio, 'null', 'None' como 'Não Informado'
-                if origin is None or origin == "" or origin == "null" or origin == "None":
+                if (
+                    origin is None
+                    or origin == ""
+                    or origin == "null"
+                    or origin == "None"
+                ):
                     return "Não Informado"
                 return origin
     except Exception:
@@ -393,11 +426,20 @@ def apply_filters(chats: List, filters: Dict) -> List:
     # Filtro por período (datas)
     if filters.get("date_range"):
         start_date, end_date = filters["date_range"]
-        filtered = [c for c in filtered if c.firstMessageDate and start_date <= c.firstMessageDate.date() <= end_date]
+        filtered = [
+            c
+            for c in filtered
+            if c.firstMessageDate
+            and start_date <= c.firstMessageDate.date() <= end_date
+        ]
 
     # Filtro por agente
     if filters.get("agents"):
-        filtered = [c for c in filtered if hasattr(c, "agent") and c.agent and c.agent.name in filters["agents"]]
+        filtered = [
+            c
+            for c in filtered
+            if hasattr(c, "agent") and c.agent and c.agent.name in filters["agents"]
+        ]
 
     # Filtro por origem
     if filters.get("origins"):
@@ -405,11 +447,19 @@ def apply_filters(chats: List, filters: Dict) -> List:
 
     # Filtro por tags
     if filters.get("tags"):
-        filtered = [c for c in filtered if any(tag in get_chat_tags(c) for tag in filters["tags"])]
+        filtered = [
+            c
+            for c in filtered
+            if any(tag in get_chat_tags(c) for tag in filters["tags"])
+        ]
 
     # Filtro por horário comercial
     if filters.get("business_hours_only"):
-        filtered = [c for c in filtered if hasattr(c, "firstMessageDate") and is_business_hour(c.firstMessageDate)]
+        filtered = [
+            c
+            for c in filtered
+            if hasattr(c, "firstMessageDate") and is_business_hour(c.firstMessageDate)
+        ]
 
     return filtered
 
@@ -597,7 +647,7 @@ def render_user_sidebar() -> None:
     )
 
     # Botão de logout
-    if st.sidebar.button("🚪 Sair", key="logout_btn", use_container_width=True):
+    if st.sidebar.button("🚪 Sair", key="logout_btn", width="stretch"):
         AuthManager.logout()
         st.rerun()
 
@@ -719,7 +769,9 @@ def render_skeleton(height: int = 200, message: str = "Carregando gráfico...") 
     )
 
 
-def render_loading_placeholder(cols: int = 4, message: str = "Carregando métricas...") -> None:
+def render_loading_placeholder(
+    cols: int = 4, message: str = "Carregando métricas..."
+) -> None:
     """
     Renderiza placeholders de loading para KPIs.
 
@@ -793,11 +845,15 @@ def create_excel_download(
 
         # Ajustar largura das colunas
         for i, col in enumerate(df.columns):
-            max_length = max(df[col].astype(str).map(len).max() if len(df) > 0 else 0, len(str(col)))
+            max_length = max(
+                df[col].astype(str).map(len).max() if len(df) > 0 else 0, len(str(col))
+            )
             worksheet.set_column(i, i, min(max_length + 2, 50))
 
         # Header formatting
-        header_format = workbook.add_format({"bold": True, "bg_color": "#6366f1", "font_color": "white", "border": 1})
+        header_format = workbook.add_format(
+            {"bold": True, "bg_color": "#6366f1", "font_color": "white", "border": 1}
+        )
         for col_num, value in enumerate(df.columns.values):
             worksheet.write(0, col_num, value, header_format)
 
@@ -872,7 +928,9 @@ def split_chats_by_period(chats: List, days: int = 7) -> tuple:
     for chat in chats:
         if chat.firstMessageDate:
             chat_date = (
-                chat.firstMessageDate.replace(tzinfo=None) if chat.firstMessageDate.tzinfo else chat.firstMessageDate
+                chat.firstMessageDate.replace(tzinfo=None)
+                if chat.firstMessageDate.tzinfo
+                else chat.firstMessageDate
             )
             if chat_date >= current_start:
                 current_period.append(chat)
@@ -986,7 +1044,8 @@ def create_premium_bar_chart(
         orientation=orientation,
         color=color,
         color_discrete_map=color_discrete_map,
-        color_continuous_scale=color_continuous_scale or [colors["primary"], colors["secondary"], colors["tertiary"]],
+        color_continuous_scale=color_continuous_scale
+        or [colors["primary"], colors["secondary"], colors["tertiary"]],
         text=y if show_values and orientation == "v" else (x if show_values else None),
     )
 
@@ -999,7 +1058,9 @@ def create_premium_bar_chart(
         textposition="outside" if show_values else None,
         textfont=dict(size=11, color=colors["text_muted"]),
         hovertemplate=(
-            "<b>%{x}</b><br>%{y}<extra></extra>" if orientation == "v" else "<b>%{y}</b><br>%{x}<extra></extra>"
+            "<b>%{x}</b><br>%{y}<extra></extra>"
+            if orientation == "v"
+            else "<b>%{y}</b><br>%{x}<extra></extra>"
         ),
     )
 
@@ -1167,7 +1228,6 @@ def get_echarts_theme() -> Dict[str, Any]:
     Retorna configuração de tema para ECharts baseado no tema atual.
     """
     colors = get_colors()
-    get_theme_mode() == "dark"
 
     return {
         "backgroundColor": "transparent",
@@ -1268,19 +1328,26 @@ def render_echarts_bar(
                 "rotate": 0 if horizontal else (45 if len(x_data) > 5 else 0),
             },
             "axisLine": {"lineStyle": {"color": colors["grid"]}},
-            "splitLine": ({"lineStyle": {"color": colors["grid"]}} if horizontal else None),
+            "splitLine": (
+                {"lineStyle": {"color": colors["grid"]}} if horizontal else None
+            ),
         },
         "yAxis": {
             "type": "value" if not horizontal else "category",
             "data": x_data if horizontal else None,
             "axisLabel": {"color": colors["text_muted"], "fontSize": 12},
             "axisLine": {"lineStyle": {"color": colors["grid"]}},
-            "splitLine": ({"lineStyle": {"color": colors["grid"]}} if not horizontal else None),
+            "splitLine": (
+                {"lineStyle": {"color": colors["grid"]}} if not horizontal else None
+            ),
         },
         "series": [
             {
                 "type": "bar",
-                "data": [{"value": v, "label": {"formatter": f}} for v, f in zip(y_data, formatted_y)],
+                "data": [
+                    {"value": v, "label": {"formatter": f}}
+                    for v, f in zip(y_data, formatted_y)
+                ],
                 "itemStyle": {
                     "color": colors["primary"],
                     "borderRadius": [4, 4, 0, 0] if not horizontal else [0, 4, 4, 0],
@@ -1579,7 +1646,9 @@ def render_echarts_bar_gradient(
             {
                 "type": "bar",
                 "data": series_data,
-                "itemStyle": {"borderRadius": [0, 4, 4, 0] if horizontal else [4, 4, 0, 0]},
+                "itemStyle": {
+                    "borderRadius": [0, 4, 4, 0] if horizontal else [4, 4, 0, 0]
+                },
                 "label": {
                     "show": True,
                     "position": "right" if horizontal else "top",

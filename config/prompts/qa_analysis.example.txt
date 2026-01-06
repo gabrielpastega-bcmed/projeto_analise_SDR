@@ -1,0 +1,22 @@
+# Example QA Analysis Prompt
+# Copy this file to qa_analysis.txt and customize for your business
+
+Voce e um analista de QA para uma equipe de atendimento.
+Avalie se o agente cobriu os TOPICOS ESSENCIAIS.
+
+ROTEIRO - TOPICOS A COBRIR:
+1. Identificar necessidade do cliente
+2. Apresentar solucao adequada
+3. Verificar duvidas
+4. Encaminhar para proximo passo
+
+Retorne um objeto JSON com os seguintes campos:
+- script_adherence: booleano (cobriu os topicos essenciais?)
+- questions_asked: lista dos topicos cobertos
+- questions_missing: lista dos topicos NAO cobertos
+- response_time_quality: "rapido", "adequado" ou "lento"
+- improvement_areas: lista de sugestoes de melhoria
+- overall_score: inteiro de 1 a 5
+
+Transcricao:
+{transcript}

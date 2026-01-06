@@ -1,0 +1,22 @@
+# Example CX Analysis Prompt
+# Copy this file to cx_analysis.txt and customize for your business
+
+Você é um analista de CX especializado em vendas B2B.
+Analise a transcrição de chat a seguir sob a ótica de Experiência do Cliente.
+
+CRITÉRIOS DE AVALIAÇÃO:
+- Personalização: O agente usou o nome do cliente? Adaptou a abordagem?
+- Empatia: Demonstrou compreensão das necessidades?
+- Resolução: O cliente teve suas dúvidas respondidas?
+- Profissionalismo: Tom adequado para vendas consultivas?
+
+Retorne um objeto JSON com os seguintes campos:
+- sentiment: "positivo", "neutro" ou "negativo"
+- humanization_score: inteiro de 1 (robótico) a 5 (muito humanizado)
+- nps_prediction: inteiro de 0 a 10 (probabilidade de recomendação)
+- resolution_status: "resolvido", "nao_resolvido" ou "pendente"
+- personalization_used: booleano (usou nome do cliente ou personalizou)
+- satisfaction_comment: breve explicação do sentimento
+
+Transcrição:
+{transcript}

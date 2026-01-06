@@ -29,7 +29,9 @@ render_user_sidebar()
 COLORS = get_colors()
 
 st.title("🔔 Central de Alertas")
-st.markdown("Monitore métricas importantes e receba notificações quando thresholds são ultrapassados.")
+st.markdown(
+    "Monitore métricas importantes e receba notificações quando thresholds são ultrapassados."
+)
 
 # ================================================================
 # ALERTAS ATIVOS
@@ -65,13 +67,17 @@ try:
                 with col2:
                     st.markdown(f"**{alert.title}**")
                     st.caption(alert.message)
-                    st.caption(f"Criado em: {alert.created_at.strftime('%d/%m/%Y %H:%M')}")
+                    st.caption(
+                        f"Criado em: {alert.created_at.strftime('%d/%m/%Y %H:%M')}"
+                    )
 
                 with col3:
                     user_info = AuthManager.get_current_user()
                     if user_info:
                         if st.button("✓ Reconhecer", key=f"ack_{alert.id}"):
-                            AlertService.acknowledge_alert(alert.id, user_info.get("user_id", 0))
+                            AlertService.acknowledge_alert(
+                                alert.id, user_info.get("user_id", 0)
+                            )
                             st.rerun()
 
                         if st.button("🗑️ Resolver", key=f"resolve_{alert.id}"):
@@ -99,7 +105,9 @@ try:
 
     col1, col2 = st.columns([1, 3])
     with col1:
-        days = st.selectbox("Período", [7, 14, 30, 90], format_func=lambda x: f"Últimos {x} dias")
+        days = st.selectbox(
+            "Período", [7, 14, 30, 90], format_func=lambda x: f"Últimos {x} dias"
+        )
 
     history = AlertService.get_alert_history(days=days)
 
@@ -116,12 +124,14 @@ try:
                     "Severidade": alert.severity.title(),
                     "Status": alert.status.title(),
                     "Valor": f"{alert.metric_value:.1f}" if alert.metric_value else "-",
-                    "Limite": (f"{alert.threshold_value:.1f}" if alert.threshold_value else "-"),
+                    "Limite": (
+                        f"{alert.threshold_value:.1f}" if alert.threshold_value else "-"
+                    ),
                 }
             )
 
         df = pd.DataFrame(history_data)
-        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.dataframe(df, width="stretch", hide_index=True)
 
         # Estatísticas
         st.markdown("### 📊 Estatísticas")
@@ -184,9 +194,11 @@ if user_info and user_info.get("is_superadmin"):
             label_visibility="collapsed",
         )
 
-    if st.button("💾 Salvar Configurações", use_container_width=True):
+    if st.button("💾 Salvar Configurações", width="stretch"):
         st.success("✅ Thresholds atualizados com sucesso!")
-        st.info("Nota: A persistência de thresholds requer atualização do banco de dados.")
+        st.info(
+            "Nota: A persistência de thresholds requer atualização do banco de dados."
+        )
 
 else:
     st.info("🔒 Apenas superadministradores podem configurar thresholds.")

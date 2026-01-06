@@ -19,6 +19,7 @@ from src.dashboard_utils import (
     get_chat_tags,
     get_colors,
     get_lead_origin,
+    get_lead_status,
     render_echarts_bar,
     render_echarts_pie,
     render_user_sidebar,
@@ -45,7 +46,9 @@ st.markdown("---")
 
 # Check if data is loaded
 if "chats" not in st.session_state or not st.session_state.chats:
-    st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
+    st.warning(
+        "⚠️ Dados não carregados. Volte para a página principal e carregue os dados."
+    )
     st.stop()
 
 # Advanced Filters
@@ -63,7 +66,7 @@ with col1:
     if filter_component.has_active_filters():
         st.info(f"🔍 Filtros: {filter_component.get_filter_summary()}")
 with col2:
-    if st.button("📥 Exportar Excel", use_container_width=True):
+    if st.button("📥 Exportar Excel", width="stretch"):
         from src.excel_export import create_chat_export
 
         excel_bytes = create_chat_export(chats, filter_component.get_current_filters())
@@ -72,7 +75,7 @@ with col2:
             data=excel_bytes,
             file_name=f"visao_geral_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
+            width="stretch",
         )
 
 if not chats:
@@ -95,15 +98,19 @@ def calc_metrics(chat_list):
     total = len(chat_list)
     waiting = [c.waitingTime for c in chat_list if c.waitingTime is not None]
     avg_tme = (sum(waiting) / len(waiting) / 60) if waiting else 0
-    quals = [classify_lead_qualification(get_chat_tags(c)) for c in chat_list]
-    qual_rate = (sum(1 for q in quals if q == "qualificado") / total * 100) if total > 0 else 0
+    quals = [get_lead_status(c) for c in chat_list]
+    qual_rate = (
+        (sum(1 for q in quals if q == "qualificado") / total * 100) if total > 0 else 0
+    )
     msgs = [c.messagesCount or len(c.messages) for c in chat_list]
     avg_msg = (sum(msgs) / len(msgs)) if msgs else 0
     return total, avg_tme, qual_rate, avg_msg
 
 
 curr_total, curr_tme, curr_qual, curr_msg = calc_metrics(chats)
-prev_total, prev_tme, prev_qual, prev_msg = calc_metrics(previous_chats) if previous_chats else (0, 0, 0, 0)
+prev_total, prev_tme, prev_qual, prev_msg = (
+    calc_metrics(previous_chats) if previous_chats else (0, 0, 0, 0)
+)
 
 # Calcular deltas
 _, delta_total, _ = calculate_delta(curr_total, prev_total)
@@ -155,7 +162,7 @@ with col_left:
     st.subheader("🎯 Distribuição de Qualificação")
 
     # Calcular qualificações para o gráfico
-    qualifications = [classify_lead_qualification(get_chat_tags(c)) for c in chats]
+    qualifications = [get_lead_status(c) for c in chats]
     qual_counts = {}
     for q in qualifications:
         qual_counts[q] = qual_counts.get(q, 0) + 1
@@ -174,7 +181,10 @@ with col_left:
         "Sem Tag": COLORS["info"],
     }
 
-    qual_df_data = [{"Qualificação": labels_map.get(k, k), "Quantidade": v} for k, v in qual_counts.items()]
+    qual_df_data = [
+        {"Qualificação": labels_map.get(k, k), "Quantidade": v}
+        for k, v in qual_counts.items()
+    ]
 
     if qual_df_data:
         # Usar gráfico de pizza ECharts
@@ -199,7 +209,9 @@ with col_right:
         origin_counts[origin] = origin_counts.get(origin, 0) + 1
 
     # Ordenar por quantidade (top 10)
-    sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[:10]
+    sorted_origins = sorted(origin_counts.items(), key=lambda x: x[1], reverse=True)[
+        :10
+    ]
 
     if len(sorted_origins) > 0:
         # Converter para lista de dicts

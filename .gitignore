@@ -181,3 +181,10 @@ docs/internal-*.md
 # =======================================================
 test_output.txt
 *_output.txt
+
+# =======================================================
+# PROPRIETARY LLM PROMPTS (BCMED-SPECIFIC - DO NOT SHARE)
+# =======================================================
+# Real prompts contain company-specific methodology
+config/prompts/*.txt
+!config/prompts/*.example.txt

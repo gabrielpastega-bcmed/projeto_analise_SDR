@@ -83,6 +83,16 @@ jobs:
             echo "**Chats Analyzed:** $CHAT_COUNT" >> $GITHUB_STEP_SUMMARY
           fi
 
+      - name: Send Weekly Report
+        if: success()
+        env:
+          MAIL_USERNAME: ${{ secrets.MAIL_USERNAME }}
+          MAIL_PASSWORD: ${{ secrets.MAIL_PASSWORD }}
+          NOTIFICATION_EMAIL: ${{ secrets.NOTIFICATION_EMAIL }}
+        run: |
+          echo "📧 Sending weekly summary report..."
+          poetry run python scripts/send_weekly_report.py
+
       - name: Notify Success
         if: success()
         uses: dawidd6/action-send-mail@v3

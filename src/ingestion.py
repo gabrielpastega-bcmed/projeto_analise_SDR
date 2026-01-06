@@ -7,7 +7,7 @@ import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Iterator, List, MutableMapping, Optional
+from typing import Any, Dict, Iterator, List, MutableMapping, Optional
 
 from dotenv import load_dotenv
 from google.cloud import bigquery
@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 
 @dataclass
 class LoadResult:
-    """Resultado estruturado de carregamento de dados com métricas de erro."""
+    """Resultado estruturado de carregamento de dados com metricas de erro."""
 
     chats: List[Chat] = field(default_factory=list)
     total_rows: int = 0
@@ -76,7 +76,9 @@ def _anonymize_text(text: str) -> str:
     return text
 
 
-def _anonymize_chat_data(chat_data: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
+def _anonymize_chat_data(
+    chat_data: MutableMapping[str, Any],
+) -> MutableMapping[str, Any]:
     """
     Aplica a anonimização em todos os campos relevantes de um dicionário de chat.
 
@@ -101,7 +103,7 @@ def _anonymize_chat_data(chat_data: MutableMapping[str, Any]) -> MutableMapping[
     if "agent" in chat_data and isinstance(chat_data["agent"], dict):
         if "name" in chat_data["agent"]:
             # Mantém o nome do agente para análise de performance, mas remove o email
-            # Se a política for mais restrita, o nome também pode ser anonimizado.
+            # Se a política for mais restrita, o nome tambem pode ser anonimizado.
             pass
         if "email" in chat_data["agent"]:
             chat_data["agent"]["email"] = "[EMAIL]"
@@ -131,9 +133,9 @@ def load_chats_from_json(file_path: str) -> List[Chat]:
     chats = []
     for item in data:
         try:
-            # Etapa de anonimização antes da validação
+            # Etapa de anonimização antes da validacao
             anonymized_item = _anonymize_chat_data(item)
-            # Validação e parsing com Pydantic
+            # Validacao e parsing com Pydantic
             chat = Chat(**anonymized_item)
             chats.append(chat)
         except Exception as e:
@@ -176,7 +178,7 @@ def stream_chats_from_bigquery(
     credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     default_days = int(os.getenv("ANALYSIS_DAYS", "7"))
 
-    # Validação da configuração
+    # Validacao da configuração
     if not all([project_id, dataset, table]):
         raise ValueError(
             "Configuração do BigQuery incompleta. "
@@ -208,15 +210,15 @@ def stream_chats_from_bigquery(
         SELECT
             {fields}
         FROM `{project_id}.{dataset}.{table}`
-        WHERE DATE(firstMessageDate) >= @start_date
-        ORDER BY firstMessageDate DESC
+        WHERE DATE(lastMessageDate) >= @start_date
+        ORDER BY lastMessageDate DESC
         """
     else:
         query = f"""
         SELECT *
         FROM `{project_id}.{dataset}.{table}`
-        WHERE DATE(firstMessageDate) >= @start_date
-        ORDER BY firstMessageDate DESC
+        WHERE DATE(lastMessageDate) >= @start_date
+        ORDER BY lastMessageDate DESC
         """  # nosec B608
 
     job_config = bigquery.QueryJobConfig(
@@ -257,7 +259,7 @@ def stream_chats_from_bigquery(
                 if lightweight and "messages" not in item:
                     item["messages"] = []
 
-                # Etapa de anonimização antes da validação
+                # Etapa de anonimização antes da validacao
                 anonymized_item = _anonymize_chat_data(item)
                 chat = Chat(**anonymized_item)
 
@@ -267,12 +269,16 @@ def stream_chats_from_bigquery(
             except Exception as e:
                 total_errors += 1
                 if total_errors <= 5:
-                    logger.warning(f"Erro ao processar chat {item.get('id', 'desconhecido')}: {e}")
+                    logger.warning(
+                        f"Erro ao processar chat {item.get('id', 'desconhecido')}: {e}"
+                    )
 
     if total_errors > 0:
-        logger.warning(f"Streaming concluído: {total_processed} chats processados, {total_errors} erros")
+        logger.warning(
+            f"Streaming concluido: {total_processed} chats processados, {total_errors} erros"
+        )
     else:
-        logger.info(f"Streaming concluído: {total_processed} chats processados")
+        logger.info(f"Streaming concluido: {total_processed} chats processados")
 
 
 def load_chats_from_bigquery(
@@ -305,7 +311,7 @@ def load_chats_from_bigquery(
     credentials_path = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
     default_days = int(os.getenv("ANALYSIS_DAYS", "7"))
 
-    # Validação da configuração
+    # Validacao da configuração
     if not all([project_id, dataset, table]):
         raise ValueError(
             "Configuração do BigQuery incompleta. "
@@ -340,16 +346,16 @@ def load_chats_from_bigquery(
         SELECT
             {fields}
         FROM `{project_id}.{dataset}.{table}`
-        WHERE DATE(firstMessageDate) >= @start_date
-        ORDER BY firstMessageDate DESC
+        WHERE DATE(lastMessageDate) >= @start_date
+        ORDER BY lastMessageDate DESC
         """
     else:
         query = f"""
         SELECT *
         FROM `{project_id}.{dataset}.{table}`
-        WHERE DATE(firstMessageDate) >= @start_date
-        ORDER BY firstMessageDate DESC
-        """  # nosec B608 - A construção da query é segura, pois os parâmetros vêm de env vars.
+        WHERE DATE(lastMessageDate) >= @start_date
+        ORDER BY lastMessageDate DESC
+        """  # nosec B608 - A construcao da query e segura, pois os parametros vem de env vars.
 
     job_config = bigquery.QueryJobConfig(
         query_parameters=[
@@ -389,14 +395,16 @@ def load_chats_from_bigquery(
             if lightweight and "messages" not in item:
                 item["messages"] = []
 
-            # Etapa de anonimização antes da validação
+            # Etapa de anonimização antes da validacao
             anonymized_item = _anonymize_chat_data(item)
             chat = Chat(**anonymized_item)
             chats.append(chat)
         except Exception as e:
             errors += 1
             if errors <= 5:
-                logger.warning(f"Erro ao processar chat {item.get('id', 'desconhecido')}: {e}")
+                logger.warning(
+                    f"Erro ao processar chat {item.get('id', 'desconhecido')}: {e}"
+                )
 
     if errors > 0:
         logger.warning(f"Total de erros de processamento: {errors}/{len(rows)}")
@@ -407,7 +415,7 @@ def load_chats_from_bigquery(
 
 def load_aggregated_metrics_from_bigquery(days: Optional[int] = None) -> dict:
     """
-    Carrega métricas agregadas diretamente do BigQuery (mais rápido).
+    Carrega metricas agregadas diretamente do BigQuery (mais rápido).
 
     Retorna estatísticas pré-calculadas sem precisar carregar todos os chats.
     """
@@ -456,7 +464,7 @@ def load_aggregated_metrics_from_bigquery(days: Optional[int] = None) -> dict:
             "unique_agents": result.unique_agents or 0,
         }
     except Exception as e:
-        print(f"Erro ao carregar métricas agregadas: {e}")
+        print(f"Erro ao carregar metricas agregadas: {e}")
         return {}
 
 
@@ -475,3 +483,73 @@ def get_data_source() -> str:
     if all([project_id, dataset, table]):
         return "bigquery"
     return "json"
+
+
+def load_analysis_results_from_postgres(
+    chat_ids: List[str],
+) -> Dict[str, Dict[str, Any]]:
+    """
+    Carrega resultados de análise do PostgreSQL para uma lista de chat IDs.
+
+    Args:
+        chat_ids: Lista de IDs de chat para buscar.
+
+    Returns:
+        Um dicionário mapeando chat_id para os dados de análise.
+    """
+    import psycopg2
+
+    # Se não houver IDs, retorna vazio
+    if not chat_ids:
+        return {}
+
+    host = os.getenv("AUTH_DATABASE_HOST")
+    port = os.getenv("AUTH_DATABASE_PORT", "5432")
+    database = os.getenv("AUTH_DATABASE_NAME")
+    user = os.getenv("AUTH_DATABASE_USER")
+    password = os.getenv("AUTH_DATABASE_PASSWORD")
+
+    if not all([host, database, user, password]):
+        logger.warning(
+            "Configuração PostgreSQL incompleta. Não será possível carregar resultados de análise."
+        )
+        return {}
+
+    try:
+        conn = psycopg2.connect(
+            f"postgresql://{user}:{password}@{host}:{port}/{database}"
+        )
+        cursor = conn.cursor()
+
+        # Query para buscar dados
+        # Usamos ANY para filtrar pela lista de IDs de forma eficiente
+        query = """
+            SELECT
+                chat_id,
+                sales_outcome,
+                sales_stage,
+                qa_professionalism_score
+            FROM octadesk_analysis_results
+            WHERE chat_id = ANY(%s)
+        """
+
+        cursor.execute(query, (chat_ids,))
+        results = {}
+
+        for row in cursor.fetchall():
+            chat_id, sales_outcome, sales_stage, qa_score = row
+            results[chat_id] = {
+                "sales_outcome": sales_outcome,
+                "sales_stage": sales_stage,
+                "qa_score": qa_score,
+            }
+
+        cursor.close()
+        conn.close()
+
+        logger.info(f"Carregados {len(results)} resultados de análise do PostgreSQL")
+        return results
+
+    except Exception as e:
+        logger.error(f"Erro ao carregar resultados do PostgreSQL: {e}")
+        return {}

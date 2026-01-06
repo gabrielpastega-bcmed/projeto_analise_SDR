@@ -14,6 +14,7 @@ from src.dashboard_utils import (
     create_excel_download,
     get_chat_tags,
     get_colors,
+    get_lead_status,
     render_echarts_bar,
     render_echarts_bar_gradient,
     render_user_sidebar,
@@ -38,7 +39,9 @@ st.markdown("---")
 
 # Check data
 if "chats" not in st.session_state or not st.session_state.chats:
-    st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
+    st.warning(
+        "⚠️ Dados não carregados. Volte para a página principal e carregue os dados."
+    )
     st.stop()
 
 # Aplicar filtros globais
@@ -65,10 +68,15 @@ business_hours_only = st.sidebar.checkbox(
 filtered_chats = chats
 if business_hours_only:
     filtered_chats = [
-        c for c in chats if c.firstMessageDate and classify_contact_context(c.firstMessageDate) == "horario_comercial"
+        c
+        for c in chats
+        if c.firstMessageDate
+        and classify_contact_context(c.firstMessageDate) == "horario_comercial"
     ]
     if len(filtered_chats) == 0:
-        st.warning("Nenhum chat com horário comercial encontrado. Desmarque o filtro para ver todos os dados.")
+        st.warning(
+            "Nenhum chat com horário comercial encontrado. Desmarque o filtro para ver todos os dados."
+        )
         filtered_chats = chats  # Fallback to all chats
 
 if len(filtered_chats) == 0:
@@ -89,6 +97,7 @@ for chat in filtered_chats:
         agent_data[agent_name] = {
             "chats": [],
             "waiting_times": [],
+            "qa_scores": [],
             "qualificados": 0,
             "total": 0,
         }
@@ -99,7 +108,11 @@ for chat in filtered_chats:
     if chat.waitingTime:
         agent_data[agent_name]["waiting_times"].append(chat.waitingTime)
 
-    qual = classify_lead_qualification(get_chat_tags(chat))
+    # Coletar QA Score se disponivel
+    if hasattr(chat, "qa_score") and chat.qa_score is not None:
+        agent_data[agent_name]["qa_scores"].append(chat.qa_score)
+
+    qual = get_lead_status(chat)
     if qual == "qualificado":
         agent_data[agent_name]["qualificados"] += 1
 
@@ -110,7 +123,12 @@ for agent_name, data in agent_data.items():
     if agent_name == "Sem Agente":
         continue
 
-    avg_tme = sum(data["waiting_times"]) / len(data["waiting_times"]) if data["waiting_times"] else 0
+    avg_tme = (
+        sum(data["waiting_times"]) / len(data["waiting_times"])
+        if data["waiting_times"]
+        else 0
+    )
+    avg_qa = sum(data["qa_scores"]) / len(data["qa_scores"]) if data["qa_scores"] else 0
     qual_rate = (data["qualificados"] / data["total"] * 100) if data["total"] > 0 else 0
 
     agents_metrics.append(
@@ -119,6 +137,7 @@ for agent_name, data in agent_data.items():
             "Atendimentos": data["total"],
             "TME (s)": avg_tme,
             "TME (min)": avg_tme / 60,
+            "Nota QA": avg_qa,
             "Qualificados": data["qualificados"],
             "Taxa Qualificação (%)": qual_rate,
         }
@@ -146,9 +165,21 @@ col2.metric("TME Médio (todos)", f"{avg_tme_all:.1f} min")
 avg_qual_all = df_agents["Taxa Qualificação (%)"].mean()
 col3.metric("Taxa Qualificação Média", f"{avg_qual_all:.1f}%")
 
+# KPI de QA
+col4 = st.empty()
+with col4:
+    avg_qa_all = (
+        df_agents[df_agents["Nota QA"] > 0]["Nota QA"].mean()
+        if not df_agents[df_agents["Nota QA"] > 0].empty
+        else 0
+    )
+    st.metric("Nota QA Média", f"{avg_qa_all:.1f}/5.0")
+
 # Disclaimer
 if business_hours_only:
-    st.info("📌 Métricas calculadas apenas para contatos em **horário comercial** (Seg-Sex 08h-18h).")
+    st.info(
+        "📌 Métricas calculadas apenas para contatos em **horário comercial** (Seg-Sex 08h-18h)."
+    )
 
 st.markdown("---")
 
@@ -179,7 +210,9 @@ with col_left:
 with col_right:
     st.subheader("🎯 Ranking de Qualificação")
 
-    df_sorted_qual = df_agents.sort_values("Taxa Qualificação (%)", ascending=False).head(15)
+    df_sorted_qual = df_agents.sort_values(
+        "Taxa Qualificação (%)", ascending=False
+    ).head(15)
     qual_data = df_sorted_qual.to_dict("records")
 
     # ECharts com gradiente (verde = alta qualificação)
@@ -192,6 +225,27 @@ with col_right:
         height="400px",
         key="ranking_qualificacao",
     )
+
+# Rank de QA
+st.markdown("---")
+st.subheader("⭐ Ranking de Qualidade (QA Score)")
+df_sorted_qa = (
+    df_agents[df_agents["Nota QA"] > 0].sort_values("Nota QA", ascending=False).head(15)
+)
+
+if not df_sorted_qa.empty:
+    qa_data = df_sorted_qa.to_dict("records")
+    render_echarts_bar_gradient(
+        data=qa_data,
+        x_key="Agente",
+        y_key="Nota QA",
+        gradient_type="danger_to_success",  # Maior é melhor
+        reverse_y=True,
+        height="350px",
+        key="ranking_qa",
+    )
+else:
+    st.info("ℹ️ Nenhuma nota de QA disponível (requer análise de IA).")
 
 
 # ================================================================
@@ -243,7 +297,12 @@ st.subheader("📋 Tabela Detalhada")
 
 df_display = df_agents.copy()
 df_display["TME (min)"] = df_display["TME (min)"].apply(lambda x: f"{x:.1f}")
-df_display["Taxa Qualificação (%)"] = df_display["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%")
+df_display["Nota QA"] = df_display["Nota QA"].apply(
+    lambda x: f"{x:.1f}" if x > 0 else "-"
+)
+df_display["Taxa Qualificação (%)"] = df_display["Taxa Qualificação (%)"].apply(
+    lambda x: f"{x:.1f}%"
+)
 df_display = df_display.drop(columns=["TME (s)"])
 
 st.dataframe(

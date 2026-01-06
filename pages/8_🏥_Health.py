@@ -61,7 +61,9 @@ for component_name, component_status in components.items():
         }
 
         with col1:
-            st.markdown(f"**{component_display_names.get(component_name, component_name)}**")
+            st.markdown(
+                f"**{component_display_names.get(component_name, component_name)}**"
+            )
 
         with col2:
             status_val = component_status.get("status", "unknown")
@@ -101,11 +103,11 @@ st.subheader("🔧 Ações")
 
 col1, col2 = st.columns(2)
 with col1:
-    if st.button("🔄 Recarregar Status", use_container_width=True):
+    if st.button("🔄 Recarregar Status", width="stretch"):
         st.rerun()
 
 with col2:
-    if st.button("📊 Ver Métricas", use_container_width=True):
+    if st.button("📊 Ver Métricas", width="stretch"):
         st.info("Métricas detalhadas serão implementadas em breve")
 
 # Tips

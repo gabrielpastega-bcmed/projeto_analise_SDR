@@ -73,27 +73,27 @@ class FilterComponent:
             # Quick date presets
             col1, col2, col3, col4 = st.columns(4)
 
-            if col1.button("Hoje", use_container_width=True):
+            if col1.button("Hoje", width="stretch"):
                 today = datetime.now().date()
                 st.session_state[f"{self.key_prefix}_date_start"] = today
                 st.session_state[f"{self.key_prefix}_date_end"] = today
                 st.rerun()
 
-            if col2.button("Últimos 7 dias", use_container_width=True):
+            if col2.button("Últimos 7 dias", width="stretch"):
                 today = datetime.now().date()
                 week_ago = today - timedelta(days=7)
                 st.session_state[f"{self.key_prefix}_date_start"] = week_ago
                 st.session_state[f"{self.key_prefix}_date_end"] = today
                 st.rerun()
 
-            if col3.button("Últimos 30 dias", use_container_width=True):
+            if col3.button("Últimos 30 dias", width="stretch"):
                 today = datetime.now().date()
                 month_ago = today - timedelta(days=30)
                 st.session_state[f"{self.key_prefix}_date_start"] = month_ago
                 st.session_state[f"{self.key_prefix}_date_end"] = today
                 st.rerun()
 
-            if col4.button("🗑️ Limpar Filtros", use_container_width=True):
+            if col4.button("🗑️ Limpar Filtros", width="stretch"):
                 self.clear_filters()
                 st.rerun()
 
@@ -102,12 +102,16 @@ class FilterComponent:
 
             if chats:
                 # Extract unique agents
-                agents = sorted(set(c.agentName for c in chats if hasattr(c, "agentName") and c.agentName))
+                agents = sorted(
+                    set(c.agent.name for c in chats if c.agent and c.agent.name)
+                )
 
                 # Extract unique origins
                 from src.dashboard_utils import get_lead_origin
 
-                origins = sorted(set(get_lead_origin(c) for c in chats if get_lead_origin(c)))
+                origins = sorted(
+                    set(get_lead_origin(c) for c in chats if get_lead_origin(c))
+                )
 
                 # Qualifications
                 qualifications = ["Qualificado", "Não Qualificado", "Não Identificado"]
@@ -134,7 +138,9 @@ class FilterComponent:
                 selected_quals = st.multiselect(
                     "🎯 Filtrar por Qualificação",
                     options=qualifications,
-                    default=st.session_state.get(f"{self.key_prefix}_qualifications", []),
+                    default=st.session_state.get(
+                        f"{self.key_prefix}_qualifications", []
+                    ),
                     key=f"{self.key_prefix}_qualifications_input",
                     help="Selecione uma ou mais qualificações",
                 )
@@ -154,7 +160,9 @@ class FilterComponent:
             "date_end": st.session_state.get(f"{self.key_prefix}_date_end"),
             "agents": st.session_state.get(f"{self.key_prefix}_agents", []),
             "origins": st.session_state.get(f"{self.key_prefix}_origins", []),
-            "qualifications": st.session_state.get(f"{self.key_prefix}_qualifications", []),
+            "qualifications": st.session_state.get(
+                f"{self.key_prefix}_qualifications", []
+            ),
         }
 
     def clear_filters(self) -> None:
@@ -178,24 +186,27 @@ class FilterComponent:
         filters = self.get_current_filters()
         filtered = chats
 
-        # Date range filter
         if filters["date_start"]:
             filtered = [
                 c
                 for c in filtered
-                if hasattr(c, "timestamp") and c.timestamp and c.timestamp.date() >= filters["date_start"]
+                if c.firstMessageDate
+                and c.firstMessageDate.date() >= filters["date_start"]
             ]
 
         if filters["date_end"]:
             filtered = [
                 c
                 for c in filtered
-                if hasattr(c, "timestamp") and c.timestamp and c.timestamp.date() <= filters["date_end"]
+                if c.firstMessageDate
+                and c.firstMessageDate.date() <= filters["date_end"]
             ]
 
         # Agent filter
         if filters["agents"]:
-            filtered = [c for c in filtered if hasattr(c, "agentName") and c.agentName in filters["agents"]]
+            filtered = [
+                c for c in filtered if c.agent and c.agent.name in filters["agents"]
+            ]
 
         # Origin filter
         if filters["origins"]:
@@ -213,9 +224,15 @@ class FilterComponent:
                 "Não Identificado": "não_identificado",
             }
 
-            selected_quals = [qual_map[q] for q in filters["qualifications"] if q in qual_map]
+            selected_quals = [
+                qual_map[q] for q in filters["qualifications"] if q in qual_map
+            ]
 
-            filtered = [c for c in filtered if classify_lead_qualification(get_chat_tags(c)) in selected_quals]
+            filtered = [
+                c
+                for c in filtered
+                if classify_lead_qualification(get_chat_tags(c)) in selected_quals
+            ]
 
         return filtered
 

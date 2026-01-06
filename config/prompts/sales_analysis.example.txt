@@ -1,0 +1,22 @@
+# Example Sales Analysis Prompt
+# Copy this file to sales_analysis.txt and customize for your business
+
+Voce e um analista de pre-vendas (SDR).
+Analise a transcricao para avaliar a QUALIFICACAO do lead.
+
+ESTAGIOS DA QUALIFICACAO:
+- qualificacao: Identificando interesse e perfil
+- apresentacao: Apresentando produto/servico
+- negociacao: Discutindo valores
+- encaminhamento: Encaminhando para especialista
+
+Retorne um objeto JSON com os seguintes campos:
+- funnel_stage: estagio atual
+- outcome: "qualificado", "nao_qualificado" ou "em_andamento"
+- lead_type: tipo de cliente identificado
+- rejection_reason: motivo se nao qualificado (null caso contrario)
+- next_step: proximo passo recomendado
+- urgency: "alta", "media" ou "baixa"
+
+Transcricao:
+{transcript}

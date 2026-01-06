@@ -4073,4 +4073,4 @@ dev = ["bandit", "mkdocs-material", "mypy", "pre-commit", "pytest", "pytest-asyn
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.12"
-content-hash = "bc326cee09e10b9746e9f88b58bd463e5f15f61a981873c10345c552244a8ad1"
+content-hash = "3b8056c69354cfda8d4706e635863f4c2b9ceacd39c9a7fbace87778070a9f51"

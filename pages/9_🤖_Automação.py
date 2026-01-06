@@ -44,7 +44,9 @@ def get_workflow_runs(workflow_name: str, limit: int = 30) -> list:
     headers = {"Accept": "application/vnd.github+json"}
 
     try:
-        response = requests.get(url, headers=headers, params={"per_page": limit}, timeout=10)
+        response = requests.get(
+            url, headers=headers, params={"per_page": limit}, timeout=10
+        )
         if response.status_code == 200:
             return response.json().get("workflow_runs", [])
         else:
@@ -131,7 +133,7 @@ if weekly_runs:
             st.metric("Duração", "Em andamento...")
 
     with col4:
-        st.link_button("📋 Ver Logs", last_run["html_url"], use_container_width=True)
+        st.link_button("📋 Ver Logs", last_run["html_url"], width="stretch")
 
     # Detalhes adicionais
     with st.expander("ℹ️ Mais Informações"):
@@ -173,7 +175,9 @@ with tab1:
                 {
                     "Status": get_status_emoji(run.get("conclusion") or "in_progress"),
                     "Data/Hora": format_timestamp(run["created_at"]),
-                    "Duração": format_duration(run["created_at"], run.get("updated_at", run["created_at"])),
+                    "Duração": format_duration(
+                        run["created_at"], run.get("updated_at", run["created_at"])
+                    ),
                     "Trigger": run["event"],
                     "Run": f"#{run['run_number']}",
                     "Logs": run["html_url"],
@@ -182,7 +186,7 @@ with tab1:
 
         st.dataframe(
             table_data,
-            use_container_width=True,
+            width="stretch",
             column_config={
                 "Logs": st.column_config.LinkColumn("Logs", display_text="Ver"),
             },
@@ -216,7 +220,9 @@ with tab2:
                 {
                     "Status": get_status_emoji(run.get("conclusion") or "in_progress"),
                     "Data/Hora": format_timestamp(run["created_at"]),
-                    "Duração": format_duration(run["created_at"], run.get("updated_at", run["created_at"])),
+                    "Duração": format_duration(
+                        run["created_at"], run.get("updated_at", run["created_at"])
+                    ),
                     "Por": f"@{run['triggering_actor']['login']}",
                     "Run": f"#{run['run_number']}",
                     "Logs": run["html_url"],
@@ -225,8 +231,10 @@ with tab2:
 
         st.dataframe(
             table_data,
-            use_container_width=True,
-            column_config={"Logs": st.column_config.LinkColumn("Logs", display_text="Ver")},
+            width="stretch",
+            column_config={
+                "Logs": st.column_config.LinkColumn("Logs", display_text="Ver")
+            },
             hide_index=True,
         )
     else:
@@ -252,8 +260,10 @@ with tab3:
 
         st.dataframe(
             table_data,
-            use_container_width=True,
-            column_config={"Logs": st.column_config.LinkColumn("Logs", display_text="Ver")},
+            width="stretch",
+            column_config={
+                "Logs": st.column_config.LinkColumn("Logs", display_text="Ver")
+            },
             hide_index=True,
         )
     else:
@@ -278,21 +288,27 @@ st.info(
     2. Clique em "Run workflow"
     3. Configure os parâmetros
     4. Clique em "Run workflow" (botão verde)
-    """.format(REPO_OWNER, REPO_NAME)
+    """.format(
+        REPO_OWNER, REPO_NAME
+    )
 )
 
 with st.expander("📋 Opção 2: GitHub CLI", expanded=False):
     col1, col2 = st.columns(2)
 
     with col1:
-        max_chats = st.number_input("Máximo de chats", min_value=10, max_value=10000, value=1000, step=100)
+        max_chats = st.number_input(
+            "Máximo de chats", min_value=10, max_value=10000, value=1000, step=100
+        )
 
     with col2:
         week_start = st.date_input("Início da semana (opcional)", value=None)
 
     save_bq = st.checkbox("Salvar no BigQuery", value=True)
 
-    week_param = f"-f week_start={week_start.strftime('%Y-%m-%d')}" if week_start else ""
+    week_param = (
+        f"-f week_start={week_start.strftime('%Y-%m-%d')}" if week_start else ""
+    )
 
     command = f"""gh workflow run manual_analysis.yml \\
   -f max_chats={max_chats} \\
@@ -300,7 +316,9 @@ with st.expander("📋 Opção 2: GitHub CLI", expanded=False):
   -f save_to_bigquery={str(save_bq).lower()}"""
 
     st.code(command, language="bash")
-    st.caption("💡 Requer [GitHub CLI](https://cli.github.com/) instalado e autenticado")
+    st.caption(
+        "💡 Requer [GitHub CLI](https://cli.github.com/) instalado e autenticado"
+    )
 
 st.divider()
 
@@ -330,7 +348,9 @@ with st.expander("📚 Documentação de Secrets", expanded=False):
     - `REDIS_URL` - URL do Redis para caching
 
     📄 [Ver documentação completa](https://github.com/{}/{}/blob/main/.github/SECRETS.md)
-    """.format(REPO_OWNER, REPO_NAME)
+    """.format(
+            REPO_OWNER, REPO_NAME
+        )
     )
 
 # Footer
@@ -339,5 +359,7 @@ st.caption(
 🤖 **Automação powered by GitHub Actions**
 | 📊 Dados atualizados a cada 5 minutos
 | [Ver Workflows](https://github.com/{}/{}/actions)
-""".format(REPO_OWNER, REPO_NAME)
+""".format(
+        REPO_OWNER, REPO_NAME
+    )
 )

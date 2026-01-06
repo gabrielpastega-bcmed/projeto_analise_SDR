@@ -19,6 +19,7 @@ from src.dashboard_utils import (
     get_chat_tags,
     get_colors,
     get_lead_origin,
+    get_lead_status,
     render_echarts_bar,
     render_echarts_bar_gradient,
     render_user_sidebar,
@@ -43,7 +44,9 @@ st.markdown("---")
 
 # Check data
 if "chats" not in st.session_state or not st.session_state.chats:
-    st.warning("⚠️ Dados não carregados. Volte para a página principal e carregue os dados.")
+    st.warning(
+        "⚠️ Dados não carregados. Volte para a página principal e carregue os dados."
+    )
     st.stop()
 
 # Aplicar filtros globais
@@ -62,7 +65,7 @@ if not chats:
 col1, col2, col3, col4 = st.columns(4)
 
 # Contar qualificações
-qualifications = [classify_lead_qualification(get_chat_tags(c)) for c in chats]
+qualifications = [get_lead_status(c) for c in chats]
 qual_counts = {
     "qualificado": sum(1 for q in qualifications if q == "qualificado"),
     "nao_qualificado": sum(1 for q in qualifications if q == "nao_qualificado"),
@@ -102,7 +105,7 @@ for chat in chats:
 
     origin_data[origin]["total"] += 1
 
-    qual = classify_lead_qualification(get_chat_tags(chat))
+    qual = get_lead_status(chat)
     if qual == "qualificado":
         origin_data[origin]["qualificados"] += 1
 
@@ -114,8 +117,12 @@ for chat in chats:
 origin_metrics = []
 for origin, data in origin_data.items():
     if data["total"] >= 1:  # Mínimo de 1 lead para análise
-        avg_tme = (data["tme_sum"] / data["tme_count"] / 60) if data["tme_count"] > 0 else 0
-        qual_rate = (data["qualificados"] / data["total"] * 100) if data["total"] > 0 else 0
+        avg_tme = (
+            (data["tme_sum"] / data["tme_count"] / 60) if data["tme_count"] > 0 else 0
+        )
+        qual_rate = (
+            (data["qualificados"] / data["total"] * 100) if data["total"] > 0 else 0
+        )
 
         origin_metrics.append(
             {
@@ -159,7 +166,9 @@ if origin_metrics:
             key="leads_taxa_origem",
         )
 else:
-    st.info("📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`.")
+    st.info(
+        "📊 Nenhum dado de origem disponível. Verifique o campo `contact.customFields.origem_do_negocio`."
+    )
 
 
 # ================================================================
@@ -258,7 +267,9 @@ st.subheader("📊 Tabela Detalhada por Origem")
 
 if origin_metrics:
     df_display = df_origins.copy()
-    df_display["Taxa Qualificação (%)"] = df_display["Taxa Qualificação (%)"].apply(lambda x: f"{x:.1f}%")
+    df_display["Taxa Qualificação (%)"] = df_display["Taxa Qualificação (%)"].apply(
+        lambda x: f"{x:.1f}%"
+    )
     df_display["TME (min)"] = df_display["TME (min)"].apply(lambda x: f"{x:.1f}")
 
     st.dataframe(df_display, width="stretch", hide_index=True)

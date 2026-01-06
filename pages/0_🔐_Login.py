@@ -51,7 +51,9 @@ st.markdown(
 
 # Title
 st.markdown('<h1 class="main-title">🔐 SDR Analytics</h1>', unsafe_allow_html=True)
-st.markdown('<p class="subtitle">Sistema de Análise de Atendimento</p>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="subtitle">Sistema de Análise de Atendimento</p>', unsafe_allow_html=True
+)
 
 # Check if already logged in
 if AuthManager.is_authenticated():
@@ -72,7 +74,7 @@ if AuthManager.is_authenticated():
     st.markdown("---")
 
     # Logout button
-    if st.button("🚪 Fazer Logout", use_container_width=True):
+    if st.button("🚪 Fazer Logout", width="stretch"):
         AuthManager.logout()
         # Also clear Google OAuth session
         from src.auth.google_auth import google_logout
@@ -94,7 +96,9 @@ else:
         if google_user:
             st.session_state.google_user = google_user
             user_name = google_user.get("name", google_user.get("email"))
-            st.success(f"✅ Login com Google bem-sucedido! Bem-vindo(a), **{user_name}**!")
+            st.success(
+                f"✅ Login com Google bem-sucedido! Bem-vindo(a), **{user_name}**!"
+            )
             st.balloons()
             import time
 
@@ -129,7 +133,7 @@ else:
 
         col1, col2 = st.columns([3, 1])
         with col1:
-            submit = st.form_submit_button("🔓 Entrar", use_container_width=True)
+            submit = st.form_submit_button("🔓 Entrar", width="stretch")
         with col2:
             remember = st.checkbox("Lembrar", help="Manter sessão ativa")
 
@@ -148,7 +152,9 @@ else:
                         st.session_state.role = user.role
                         st.session_state.is_superadmin = user.is_superadmin()
 
-                        st.success(f"✅ Login bem-sucedido! Bem-vindo(a), **{user.username}**!")
+                        st.success(
+                            f"✅ Login bem-sucedido! Bem-vindo(a), **{user.username}**!"
+                        )
                         st.balloons()
 
                         # Add a small delay to show success message
@@ -159,7 +165,9 @@ else:
                         st.rerun()
                     else:
                         st.error("❌ Usuário ou senha incorretos. Tente novamente.")
-                        st.warning("⚠️ Se esqueceu sua senha, entre em contato com um administrador.")
+                        st.warning(
+                            "⚠️ Se esqueceu sua senha, entre em contato com um administrador."
+                        )
 
     # Help section
     st.markdown("---")

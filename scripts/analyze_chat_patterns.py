@@ -35,7 +35,7 @@ def load_data(days: int = 30, limit: int = 500, local_path: str = "data/raw/bigq
 
     # Se não existir local ou falhar, tenta BigQuery
     try:
-        print(f"   [INFO] Tentando conectar ao BigQuery (últimos {days} dias)...")
+        print(f"   [INFO] Tentando conectar ao BigQuery (ultimos {days} dias)...")
         return load_chats_from_bigquery(days=days, limit=limit, lightweight=False)
     except Exception as e:
         print("\n[ERROR] ERRO FATAL: Falha ao carregar dados.")
@@ -120,7 +120,7 @@ def analyze_keywords(chats, tech_patterns=None, intent_patterns=None):
 
 
 def print_analysis(chats):
-    """Função principal para rodar análise no terminal."""
+    """Função principal para rodar analise no terminal."""
     print("=" * 60)
     print("ANALISE EXPLORATORIA DE CHATS SDR")
     print("=" * 60)

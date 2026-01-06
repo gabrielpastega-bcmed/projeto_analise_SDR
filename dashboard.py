@@ -29,6 +29,7 @@ from src.dashboard_utils import (  # noqa: E402
 )
 from src.ingestion import (  # noqa: E402
     get_data_source,
+    load_analysis_results_from_postgres,
     load_chats_from_bigquery,
     load_chats_from_json,
 )
@@ -84,7 +85,9 @@ st.sidebar.info(f"📁 Fonte de dados: **{data_source.upper()}**")
 # Opções de carregamento
 st.sidebar.subheader("📊 Opções de Carregamento")
 days = st.sidebar.slider("Dias para análise", min_value=1, max_value=90, value=7)
-limit = st.sidebar.slider("Limite de chats", min_value=100, max_value=10000, value=2000, step=100)
+limit = st.sidebar.slider(
+    "Limite de chats", min_value=100, max_value=10000, value=2000, step=100
+)
 lightweight = st.sidebar.checkbox(
     "Modo leve (mais rápido)",
     value=True,
@@ -96,13 +99,44 @@ if st.sidebar.button("🔄 Carregar/Atualizar Dados", type="primary"):
     with st.spinner(f"Carregando dados ({days} dias, limite {limit})..."):
         try:
             if data_source == "bigquery":
-                chats = load_chats_from_bigquery(days=days, limit=limit, lightweight=lightweight)
+                chats = load_chats_from_bigquery(
+                    days=days, limit=limit, lightweight=lightweight
+                )
             else:
                 chats = load_chats_from_json("data/raw/mock_dashboard_data.json")
 
             st.session_state.chats = chats
             st.session_state.data_loaded = True
             st.success(f"✅ Carregados {len(chats)} chats com sucesso!")
+
+            # -----------------------------------------------------------
+            # ENRIQUECIMENTO COM DADOS DO POSTGRES (SDR ANALYTICS)
+            # -----------------------------------------------------------
+            if data_source == "bigquery" and chats:
+                with st.spinner("Carregando análises de IA do PostgreSQL..."):
+                    chat_ids = [c.id for c in chats]
+                    analysis_results = load_analysis_results_from_postgres(chat_ids)
+
+                    if analysis_results:
+                        enriched_count = 0
+                        for chat in chats:
+                            if chat.id in analysis_results:
+                                result = analysis_results[chat.id]
+                                chat.sales_outcome = result.get("sales_outcome")
+                                chat.sales_stage = result.get("sales_stage")
+                                chat.qa_score = result.get("qa_score")
+                                enriched_count += 1
+
+                        st.success(
+                            f"🧠 {enriched_count} chats enriquecidos com análise de IA!"
+                        )
+                    else:
+                        st.info(
+                            "ℹ️ Nenhuma análise encontrada para os chats carregados."
+                        )
+
+            st.session_state.chats = chats
+            st.session_state.data_loaded = True
         except Exception as e:
             st.error(f"❌ Erro ao carregar dados: {e}")
             st.session_state.data_loaded = False
@@ -331,7 +365,9 @@ if st.session_state.data_loaded and st.session_state.chats:
             st.switch_page("pages/4_🎯_Leads.py")
 
 else:
-    st.warning("⚠️ Carregue os dados usando o botão na barra lateral para visualizar as análises.")
+    st.warning(
+        "⚠️ Carregue os dados usando o botão na barra lateral para visualizar as análises."
+    )
     st.info(
         "Se estiver usando BigQuery, certifique-se de que as variáveis de ambiente estão configuradas corretamente."
     )

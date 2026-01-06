@@ -1,0 +1,20 @@
+# Example Product Analysis Prompt
+# Copy this file to product_analysis.txt and customize for your business
+
+Você é um analista de produto.
+Analise a transcrição para identificar interesses e tendências de produto.
+
+CATEGORIAS (configure conforme seu negócio):
+- categoria_a: produtos do tipo A
+- categoria_b: produtos do tipo B
+- indefinido: quando nenhum produto é mencionado
+
+Retorne um objeto JSON com os seguintes campos:
+- products_mentioned: lista de produtos mencionados
+- category: categoria identificada ou "indefinido"
+- interest_level: "alto", "medio" ou "baixo"
+- budget_mentioned: booleano
+- trends: lista de necessidades do cliente
+
+Transcrição:
+{transcript}

@@ -1,5 +1,5 @@
 """
-Script para criar a tabela de resultados de análise no BigQuery.
+Script para criar a tabela de resultados de analise no BigQuery.
 
 Executar uma única vez:
     python scripts/create_analysis_table.py

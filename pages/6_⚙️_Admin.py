@@ -53,7 +53,9 @@ with tab1:
             # Filters
             col1, col2 = st.columns(2)
             with col1:
-                filter_role = st.selectbox("Filter by Role", ["All", "superadmin", "user"], key="filter_role")
+                filter_role = st.selectbox(
+                    "Filter by Role", ["All", "superadmin", "user"], key="filter_role"
+                )
             with col2:
                 filter_status = st.selectbox(
                     "Filter by Status",
@@ -85,17 +87,27 @@ with tab1:
                         st.write(f"- **Username**: {user.username}")
                         st.write(f"- **Email**: {user.email}")
                         st.write(f"- **Role**: {user.role}")
-                        st.write(f"- **Status**: {'Active' if user.is_active else 'Inactive'}")
+                        st.write(
+                            f"- **Status**: {'Active' if user.is_active else 'Inactive'}"
+                        )
 
                     with col2:
                         st.write("**Activity:**")
-                        st.write(f"- **Created**: {user.created_at.strftime('%d/%m/%Y %H:%M')}")
+                        st.write(
+                            f"- **Created**: {user.created_at.strftime('%d/%m/%Y %H:%M')}"
+                        )
                         if user.last_login:
-                            st.write(f"- **Last Login**: {user.last_login.strftime('%d/%m/%Y %H:%M')}")
+                            st.write(
+                                f"- **Last Login**: {user.last_login.strftime('%d/%m/%Y %H:%M')}"
+                            )
                         else:
                             st.write("- **Last Login**: Never")
                         if user.created_by:
-                            creator = db.query(User).filter(User.id == user.created_by).first()
+                            creator = (
+                                db.query(User)
+                                .filter(User.id == user.created_by)
+                                .first()
+                            )
                             if creator:
                                 st.write(f"- **Created By**: {creator.username}")
 
@@ -126,11 +138,17 @@ with tab1:
                         # Don't allow deleting own account or last superadmin
                         can_delete = user.id != st.session_state.user_id
                         if user.role == "superadmin":
-                            superadmin_count = sum(1 for u in users if u.role == "superadmin" and u.is_active)
+                            superadmin_count = sum(
+                                1
+                                for u in users
+                                if u.role == "superadmin" and u.is_active
+                            )
                             can_delete = can_delete and superadmin_count > 1
 
                         if can_delete:
-                            if st.button("🗑️ Delete", key=f"delete_{user.id}", type="secondary"):
+                            if st.button(
+                                "🗑️ Delete", key=f"delete_{user.id}", type="secondary"
+                            ):
                                 if st.session_state.get(f"confirm_delete_{user.id}"):
                                     db.delete(user)
                                     db.commit()
@@ -167,20 +185,32 @@ with tab2:
             col1, col2 = st.columns(2)
             with col1:
                 unique_actions = sorted(list(set(log.action for log in logs)))
-                filter_action = st.selectbox("Filter by Action", ["All"] + unique_actions)
+                filter_action = st.selectbox(
+                    "Filter by Action", ["All"] + unique_actions
+                )
             with col2:
                 user_ids = [log.user_id for log in logs]
-                unique_users = sorted(list(set(db.query(User.username).filter(User.id.in_(user_ids)).all())))
-                filter_user = st.selectbox("Filter by User", ["All"] + [u[0] for u in unique_users])
+                unique_users = sorted(
+                    list(
+                        set(db.query(User.username).filter(User.id.in_(user_ids)).all())
+                    )
+                )
+                filter_user = st.selectbox(
+                    "Filter by User", ["All"] + [u[0] for u in unique_users]
+                )
 
             # Apply filters
             filtered_logs = logs
             if filter_action != "All":
-                filtered_logs = [log for log in filtered_logs if log.action == filter_action]
+                filtered_logs = [
+                    log for log in filtered_logs if log.action == filter_action
+                ]
             if filter_user != "All":
                 user_obj = db.query(User).filter(User.username == filter_user).first()
                 if user_obj:
-                    filtered_logs = [log for log in filtered_logs if log.user_id == user_obj.id]
+                    filtered_logs = [
+                        log for log in filtered_logs if log.user_id == user_obj.id
+                    ]
 
             st.markdown(f"**Showing {len(filtered_logs)} of {len(logs)} logs**")
             st.markdown("---")
@@ -248,7 +278,9 @@ with tab3:
         )
 
         st.markdown("---")
-        submit = st.form_submit_button("✅ Create User", type="primary", use_container_width=True)
+        submit = st.form_submit_button(
+            "✅ Create User", type="primary", width="stretch"
+        )
 
         if submit:
             # Validation
@@ -267,7 +299,9 @@ with tab3:
             db = SessionLocal()
             try:
                 existing_user = (
-                    db.query(User).filter((User.username == new_username) | (User.email == new_email)).first()
+                    db.query(User)
+                    .filter((User.username == new_username) | (User.email == new_email))
+                    .first()
                 )
 
                 if existing_user:

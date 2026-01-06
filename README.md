@@ -24,40 +24,47 @@ O sistema inclui um **dashboard interativo** com páginas especializadas:
 | 🧠 **Insights** | Dashboard consolidado com métricas agregadas do BigQuery |
 | ⚙️ **Admin** | Gerenciamento de usuários (superadmin only) |
 | 🔔 **Alertas** | Monitoramento de métricas em tempo real com notificações |
+| 🏥 **Health** | Status de integrações e saúde do sistema |
+| 🤖 **Automação** | Monitoramento de GitHub Actions e análises automáticas |
 
-### 🆕 Novas Funcionalidades (2024)
+### 🆕 Novidades v2.0.0 (Janeiro 2026)
+
+#### 🔒 Prompts Externalizados
+- Prompts de LLM movidos para `config/prompts/`
+- Arquivos `.txt` para customização fácil
+- Templates `.example.txt` incluídos para referência
+- Separação entre código e metodologia de análise
+
+#### 🐛 Correções de Bugs
+- Corrigido import quebrado em `dashboard.py`
+- Removido código morto em `dashboard_utils.py`
+- Corrigidos nomes de propriedades em `filters.py` (alinhamento com modelo `Chat`)
+- Corrigido `asyncio.get_event_loop()` deprecado → `asyncio.get_running_loop()`
+- Adicionado import `Dict` faltante em `ingestion.py`
+- Corrigido `use_container_width` deprecado → `width="stretch"` (Streamlit 1.41+)
 
 #### 🔔 Sistema de Alertas
 - Monitoramento automático de TME, Volume e Taxa de Conversão
 - Notificações em tempo real na sidebar
 - Histórico completo de incidentes
 - Configuração de thresholds personalizáveis
-- Workflow de reconhecimento e resolução
 
 #### 🔍 Filtros Avançados
 - Filtro por período (data início/fim com presets)
 - Filtro por agente (multiselect)
 - Filtro por origem e qualificação
 - Persistência em sessão
-- Sumário visual de filtros ativos
 
 #### 📥 Exportação Profissional
 - Excel com múltiplas abas (Resumo, Detalhes, Por Agente)
 - Formatação rica (cores, bordas, zebra stripes)
-- Auto-ajuste de colunas
 - Download com timestamp
-
-#### 🔐 Autenticação Avançada
-- Google OAuth integrado
-- Login híbrido (tradicional + social)
-- Gerenciamento de usuários
-- Auditoria de ações
 
 ### Análise Operacional (Algorítmica)
 - **TME** (Tempo Médio de Espera): Tempo até primeira resposta humana
 - **TMA** (Tempo Médio de Atendimento): Duração total da conversa
 - **Ranking de Agentes**: Ordenação por velocidade e volume
-- **Filtro de Horário Comercial**: Seg-Mac (08:00-18:00)
+- **Filtro de Horário Comercial**: Seg-Sex (08:00-18:00)
 
 ### Análise Qualitativa (LLM)
 - **CX**: Sentimento, Score de Humanização (1-5), Status de Resolução
@@ -70,21 +77,19 @@ O sistema inclui um **dashboard interativo** com páginas especializadas:
 - **Chunked Writes**: Inserções em chunks de 500 linhas
 - **Memory Optimization**: ~80% menos memória para datasets >1000 chats
 
-### Relatórios
-- Ranking de Agentes
-- Nuvem de Produtos (mais mencionados)
-- Funil de Vendas
-- Análise de "Loss"
-
 ## 📦 Instalação
 
 ```bash
 # Clone o repositório
-git clone https://github.com/gabrielpastega-bcmed/projeto_analise_SDR.git
+git clone https://github.com/seu-usuario/projeto_analise_SDR.git
 cd projeto_analise_SDR
 
 # Instale as dependências com Poetry
 poetry install
+
+# Configure os prompts (copie os templates e customize)
+cp config/prompts/*.example.txt config/prompts/
+# Renomeie removendo .example e edite conforme necessário
 ```
 
 ## 🎯 Uso
@@ -120,28 +125,32 @@ poetry run mypy .
 ```
 projeto_analise_SDR/
 ├── dashboard.py            # Entry point do dashboard
+├── config/
+│   └── prompts/            # Prompts de LLM (gitignored, exceto .example)
+│       ├── cx_analysis.txt
+│       ├── product_analysis.txt
+│       ├── sales_analysis.txt
+│       ├── qa_analysis.txt
+│       └── *.example.txt   # Templates (committed)
 ├── pages/                  # Páginas do dashboard multi-page
-│   ├── 0_🔐_Login.py        # Autenticação (senha + Google OAuth)
-│   ├── 1_📊_Visão_Geral.py    # KPIs macro
-│   ├── 2_👥_Agentes.py        # Análise de agentes
+│   ├── 0_🔐_Login.py
+│   ├── 1_📊_Visão_Geral.py
+│   ├── 2_👥_Agentes.py
 │   ├── 3_📈_Análise_Temporal.py
-│   ├── 4_🎯_Leads.py          # Performance de leads
-│   ├── 5_🧠_Insights.py      # Dashboard consolidado (BigQuery)
-│   ├── 6_⚙️_Admin.py         # Gerenciamento de usuários
-│   └── 7_🔔_Alertas.py       # Sistema de alertas
+│   ├── 4_🎯_Leads.py
+│   ├── 5_🧠_Insights.py
+│   ├── 6_⚙️_Admin.py
+│   ├── 7_🔔_Alertas.py
+│   ├── 8_🏥_Health.py
+│   └── 9_🤖_Automação.py
 ├── src/                    # Código fonte principal
 │   ├── auth/               # Módulo de autenticação
-│   │   ├── auth_manager.py  # Gerenciador principal
-│   │   ├── google_auth.py   # Integração OAuth
-│   │   ├── models.py        # User, Session, AuditLog
-│   │   ├── alert_models.py  # Alert, AlertThreshold
-│   │   └── alert_service.py # Lógica de alertas
 │   ├── filters.py          # Componente de filtros avançados
 │   ├── excel_export.py     # Exportação Excel profissional
 │   ├── models.py           # Modelos Pydantic
 │   ├── ingestion.py        # Carregamento (JSON/BigQuery)
 │   ├── ops_analysis.py     # Análise operacional
-│   ├── gemini_client.py    # Cliente Gemini API
+│   ├── gemini_client.py    # Cliente Gemini API (carrega prompts de arquivos)
 │   ├── batch_analyzer.py   # ETL com checkpoint
 │   └── dashboard_utils.py  # Utilitários (ECharts, temas)
 ├── tests/                  # Testes unitários (200+ testes, 82% cobertura)
@@ -154,9 +163,10 @@ projeto_analise_SDR/
 O projeto usa as seguintes ferramentas:
 - **Python 3.12+** (compatível com 3.13 e 3.14)
 - **Poetry** para gerenciamento de dependências
-- **Streamlit** para o dashboard
-- **Pydantic** para validação de dados
-- **Plotly** para gráficos interativos
+- **Streamlit 1.41+** para o dashboard
+- **Pydantic 2.10+** para validação de dados
+- **Plotly 6.1+** para gráficos interativos
+- **google-genai 1.56+** para análise LLM
 - **pytest** para testes
 - **ruff** para linting
 - **mypy** para type checking
@@ -183,21 +193,20 @@ GOOGLE_OAUTH_REDIRECT_URI=http://localhost:8501
 GOOGLE_OAUTH_COOKIE_NAME=sdr_analytics_auth
 GOOGLE_OAUTH_COOKIE_KEY=chave_secreta_32_caracteres
 
-# PostgreSQL (Autenticação)
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_DB=sdr_analytics
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=sua-senha
+# PostgreSQL (Autenticação e Resultados)
+AUTH_DATABASE_HOST=localhost
+AUTH_DATABASE_PORT=5432
+AUTH_DATABASE_NAME=sdr_analytics
+AUTH_DATABASE_USER=postgres
+AUTH_DATABASE_PASSWORD=sua-senha
 
 # Configuração de Análise
 ANALYSIS_DAYS=7
 ```
 
-
 ## 📊 Qualidade do Código
 
-- ✅ **200+ testes unitários** com **82% de cobertura no módulo auth**
+- ✅ **200+ testes unitários** com **82% de cobertura**
 - ✅ **CI/CD** automatizado (GitHub Actions)
 - ✅ **Type hints** com validação mypy
 - ✅ **Linting** com ruff
@@ -205,9 +214,9 @@ ANALYSIS_DAYS=7
 
 ## 🎓 Documentação
 
-Para mais detalhes sobre as implementações recentes, consulte:
-- [Walkthrough Completo](docs/walkthrough.md) - Visão geral de todas as features
-- [Roadmap de Implementação](docs/implementation_plan.md) - Planejamento das melhorias
+Para mais detalhes sobre as implementações, consulte:
+- [AUTHENTICATION_GUIDE.md](AUTHENTICATION_GUIDE.md) - Guia de autenticação
+- [CHANGELOG.md](CHANGELOG.md) - Histórico de versões
 
 ## 📄 Licença
 

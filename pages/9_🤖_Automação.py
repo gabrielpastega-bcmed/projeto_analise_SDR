@@ -186,7 +186,7 @@ with tab1:
 
         st.dataframe(
             table_data,
-            width="stretch",
+            use_container_width=True,
             column_config={
                 "Logs": st.column_config.LinkColumn("Logs", display_text="Ver"),
             },
@@ -231,7 +231,7 @@ with tab2:
 
         st.dataframe(
             table_data,
-            width="stretch",
+            use_container_width=True,
             column_config={
                 "Logs": st.column_config.LinkColumn("Logs", display_text="Ver")
             },
@@ -260,7 +260,7 @@ with tab3:
 
         st.dataframe(
             table_data,
-            width="stretch",
+            use_container_width=True,
             column_config={
                 "Logs": st.column_config.LinkColumn("Logs", display_text="Ver")
             },

@@ -222,7 +222,9 @@ def create_html_email(metrics: dict[str, Any], filename: str) -> str:
                 </div>
                 <div class="metric">
                     <span class="metric-label">Erros:</span>
-                    <span class="metric-value {'danger' if metrics.get('error_count', 0) > 0 else ''}">{metrics.get('error_count', 0)}</span>
+                    <span class="metric-value {
+                        'danger' if metrics.get('error_count', 0) > 0 else ''
+                    }">{metrics.get('error_count', 0)}</span>
                 </div>
             </div>
 
@@ -231,7 +233,9 @@ def create_html_email(metrics: dict[str, Any], filename: str) -> str:
                 <h3>😊 Experiência do Cliente</h3>
                 <div class="metric">
                     <span class="metric-label">NPS Médio:</span>
-                    <span class="metric-value {'success' if metrics.get('avg_nps', 0) >= 7 else 'warning'}">{metrics.get('avg_nps', 0):.1f}/10</span>
+                    <span class="metric-value {
+                        'success' if metrics.get('avg_nps', 0) >= 7 else 'warning'
+                    }">{metrics.get('avg_nps', 0):.1f}/10</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Humanização:</span>
@@ -252,7 +256,9 @@ def create_html_email(metrics: dict[str, Any], filename: str) -> str:
                 </div>
                 <div class="metric">
                     <span class="metric-label">Taxa de Conversão:</span>
-                    <span class="metric-value {'success' if metrics.get('conversion_rate', 0) >= 30 else 'warning'}">{metrics.get('conversion_rate', 0):.1f}%</span>
+                    <span class="metric-value {
+                        'success' if metrics.get('conversion_rate', 0) >= 30 else 'warning'
+                    }">{metrics.get('conversion_rate', 0):.1f}%</span>
                 </div>
                 <div class="metric">
                     <span class="metric-label">Objeções Tratadas:</span>
@@ -281,7 +287,8 @@ def create_html_email(metrics: dict[str, Any], filename: str) -> str:
             </center>
 
             <!-- Detalhes Técnicos -->
-            <div style="margin-top: 30px; padding: 15px; background: #fff; border-radius: 8px; font-size: 12px; color: #666;">
+            <div style="margin-top: 30px; padding: 15px; background: #fff;
+                        border-radius: 8px; font-size: 12px; color: #666;">
                 <strong>Detalhes Técnicos:</strong><br>
                 Arquivo: {filename}<br>
                 Processamento: Automático via GitHub Actions<br>

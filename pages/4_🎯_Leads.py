@@ -14,7 +14,6 @@ from src.dashboard_utils import (
     apply_chart_theme,
     apply_custom_css,
     apply_filters,
-    classify_lead_qualification,
     create_excel_download,
     get_chat_tags,
     get_colors,
@@ -272,7 +271,7 @@ if origin_metrics:
     )
     df_display["TME (min)"] = df_display["TME (min)"].apply(lambda x: f"{x:.1f}")
 
-    st.dataframe(df_display, width="stretch", hide_index=True)
+    st.dataframe(df_display, use_container_width=True, hide_index=True)
 
     # Exportar para Excel
     col_export, _ = st.columns([1, 3])

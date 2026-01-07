@@ -6,7 +6,6 @@ Usage:
 """
 
 import os
-import sys
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -90,8 +89,8 @@ def apply_migration():
         # Verify table exists
         cursor.execute(
             """
-            SELECT table_name 
-            FROM information_schema.tables 
+            SELECT table_name
+            FROM information_schema.tables
             WHERE table_name = 'octadesk_analysis_results'
         """
         )
@@ -102,8 +101,8 @@ def apply_migration():
             # Count indexes
             cursor.execute(
                 """
-                SELECT COUNT(*) 
-                FROM pg_indexes 
+                SELECT COUNT(*)
+                FROM pg_indexes
                 WHERE tablename = 'octadesk_analysis_results'
             """
             )

@@ -34,7 +34,10 @@ def validate_corrected_flow():
         {
             "step": "3/4",
             "action": "Verificar duplicados (batch otimizado)",
-            "code": "batch_ids = [chat.id for chat in chats_in_week]\nanalyzed_ids = get_analyzed_chat_ids_postgres(batch_ids=batch_ids)",
+            "code": (
+                "batch_ids = [chat.id for chat in chats_in_week]\n"
+                "analyzed_ids = get_analyzed_chat_ids_postgres(batch_ids=batch_ids)"
+            ),
             "result": "50 chats já analisados (de 200 verificados)",
             "validation": "✅ Batch-based com WHERE IN (otimizado)",
         },
@@ -51,7 +54,7 @@ def validate_corrected_flow():
         print(f"\n{'─' * 70}")
         print(f"ETAPA [{step['step']}]: {step['action']}")
         print(f"{'─' * 70}")
-        print(f"\n📝 Código:")
+        print("\n📝 Código:")
         for line in step["code"].split("\n"):
             print(f"   {line}")
         print(f"\n📊 Resultado: {step['result']}")

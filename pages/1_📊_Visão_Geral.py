@@ -15,7 +15,6 @@ from src.dashboard_utils import (
     apply_chart_theme,
     apply_custom_css,
     calculate_delta,
-    classify_lead_qualification,
     get_chat_tags,
     get_colors,
     get_lead_origin,

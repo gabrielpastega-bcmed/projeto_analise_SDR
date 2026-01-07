@@ -10,9 +10,7 @@ from src.dashboard_utils import (
     apply_custom_css,
     apply_filters,
     classify_contact_context,
-    classify_lead_qualification,
     create_excel_download,
-    get_chat_tags,
     get_colors,
     get_lead_status,
     render_echarts_bar,
@@ -307,7 +305,7 @@ df_display = df_display.drop(columns=["TME (s)"])
 
 st.dataframe(
     df_display.sort_values("Atendimentos", ascending=False),
-    width="stretch",
+    use_container_width=True,
     hide_index=True,
 )
 

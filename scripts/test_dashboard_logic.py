@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from src.dashboard_utils import get_lead_status
 from src.ingestion import load_analysis_results_from_postgres
 from src.models import Chat
-from src.dashboard_utils import get_lead_status
 
 # Mock chat object structure based on BigQuery
 # Using an ID we know exists in Postgres from previous steps: 38e407b3-a047-42a8-baa2-b1fb696e6a67 (Qualificado)

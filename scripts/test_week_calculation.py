@@ -84,7 +84,7 @@ def test_week_calculation():
     print(
         f"Semana útil: {week_start.strftime('%d/%m/%Y')} a {week_end.strftime('%d/%m/%Y')}"
     )
-    print(f"\nDias incluídos:")
+    print("\nDias incluídos:")
 
     current = week_start
     while current <= week_end:

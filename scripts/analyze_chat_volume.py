@@ -6,7 +6,6 @@ Ajuda a determinar a melhor estratégia de deduplicação.
 
 import os
 import sys
-from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -44,7 +43,7 @@ def analyze_chat_volume():
     # Query 2: Chats por semana (ultimas 8 semanas)
     query_weekly = f"""
     WITH weekly_stats AS (
-        SELECT 
+        SELECT
             DATE_TRUNC(CAST(firstMessageDate AS DATE), WEEK(MONDAY)) as week_start,
             COUNT(*) as chat_count
         FROM `{table_id}`
@@ -52,7 +51,7 @@ def analyze_chat_volume():
         GROUP BY week_start
         ORDER BY week_start DESC
     )
-    SELECT 
+    SELECT
         week_start,
         chat_count,
         AVG(chat_count) OVER() as avg_per_week
@@ -77,7 +76,7 @@ def analyze_chat_volume():
 
         # Query 3: Chats por dia (ultima semana)
         query_daily = f"""
-        SELECT 
+        SELECT
             CAST(firstMessageDate AS DATE) as day,
             COUNT(*) as chat_count
         FROM `{table_id}`
@@ -128,27 +127,27 @@ def analyze_chat_volume():
         # Batch-based
         batch_size = 500
         num_batches = int(avg / batch_size) + 1
-        print(f"\n1. BATCH-BASED (atual otimizado):")
+        print("\n1. BATCH-BASED (atual otimizado):")
         print(f"   - Batches por semana: {num_batches}")
         print(f"   - IDs por query: {batch_size} (maximo)")
         print(f"   - Queries total: {num_batches}")
-        print(f"   - Custo estimado: BAIXO")
-        print(f"   - Complexidade: BAIXA")
+        print("   - Custo estimado: BAIXO")
+        print("   - Complexidade: BAIXA")
 
         # Week-based
-        print(f"\n2. WEEK-BASED (busca todos da semana):")
+        print("\n2. WEEK-BASED (busca todos da semana):")
         print(f"   - IDs por query: {avg:,.0f}")
-        print(f"   - Queries total: 1")
+        print("   - Queries total: 1")
         print(f"   - Custo estimado: {'MÉDIO' if avg < 5000 else 'ALTO'}")
-        print(f"   - Complexidade: BAIXA")
+        print("   - Complexidade: BAIXA")
 
         # Bloom filter / Index
-        print(f"\n3. BLOOM FILTER / EXTERNAL INDEX:")
+        print("\n3. BLOOM FILTER / EXTERNAL INDEX:")
         print(f"   - IDs em memória: {avg:,.0f}")
         print(f"   - Memory footprint: ~{avg * 50 / 1024:.1f} KB")
-        print(f"   - Queries total: 0 (apos carregar)")
+        print("   - Queries total: 0 (apos carregar)")
         print(f"   - Custo estimado: {'BAIXO' if avg < 10000 else 'MÉDIO'}")
-        print(f"   - Complexidade: ALTA")
+        print("   - Complexidade: ALTA")
 
         print("\n" + "=" * 60)
         print("RECOMENDACOES:")

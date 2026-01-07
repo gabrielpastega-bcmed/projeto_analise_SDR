@@ -321,7 +321,7 @@ def send_email(html_content: str, metrics: dict[str, Any]) -> bool:
         f"📊 Relatório Semanal - {metrics.get('total_analyzed', 0)} chats analisados"
     )
     msg["From"] = f"SDR Analytics <{sender}>"
-    msg["To"] = recipient
+    msg["To"] = recipient  # type: ignore[assignment]
 
     # Anexar HTML
     html_part = MIMEText(html_content, "html")
@@ -331,6 +331,8 @@ def send_email(html_content: str, metrics: dict[str, Any]) -> bool:
     try:
         with smtplib.SMTP(smtp_server, smtp_port) as server:
             server.starttls()
+            # Type assertions - we've verified these are not None above
+            assert sender is not None and password is not None and recipient is not None
             server.login(sender, password)
             server.sendmail(sender, recipient, msg.as_string())
 

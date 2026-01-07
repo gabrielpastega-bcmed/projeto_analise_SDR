@@ -4,8 +4,9 @@ Sentry configuration for error tracking and performance monitoring.
 Provides centralized error handling without modifying existing code.
 """
 
+import logging
 import os
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 import sentry_sdk
 from sentry_sdk.integrations.logging import LoggingIntegration
@@ -38,7 +39,7 @@ def init_sentry() -> None:
         integrations=[
             LoggingIntegration(
                 level=None,  # Capture all logs
-                event_level="ERROR",  # Only send errors as events
+                event_level=logging.ERROR,  # Only send errors as events
             ),
         ],
         # Add user context automatically
@@ -48,7 +49,9 @@ def init_sentry() -> None:
     )
 
 
-def set_user_context(user_id: Optional[int] = None, username: Optional[str] = None) -> None:
+def set_user_context(
+    user_id: Optional[int] = None, username: Optional[str] = None
+) -> None:
     """
     Set user context for Sentry events.
 
@@ -57,7 +60,9 @@ def set_user_context(user_id: Optional[int] = None, username: Optional[str] = No
         username: Username
     """
     if user_id or username:
-        sentry_sdk.set_user({"id": str(user_id) if user_id else None, "username": username})
+        sentry_sdk.set_user(
+            {"id": str(user_id) if user_id else None, "username": username}
+        )
 
 
 def set_tags(**tags: Any) -> None:
@@ -85,7 +90,11 @@ def capture_exception(error: Exception, **extra: Any) -> None:
         sentry_sdk.capture_exception(error)
 
 
-def capture_message(message: str, level: str = "info", **extra: Any) -> None:
+def capture_message(
+    message: str,
+    level: Literal["fatal", "critical", "error", "warning", "info", "debug"] = "info",
+    **extra: Any,
+) -> None:
     """
     Capture a message (breadcrumb).
 

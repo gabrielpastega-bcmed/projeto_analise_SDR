@@ -11,6 +11,7 @@ load_dotenv()  # Load environment variables before importing auth modules
 import streamlit as st
 
 from src.auth.auth_manager import AuthManager
+from src.auth.permissions import get_role_display_name
 
 # Page configuration
 st.set_page_config(
@@ -62,19 +63,23 @@ if AuthManager.is_authenticated():
     st.success(f"✅ Você já está autenticado como **{user_info['username']}**")
 
     # Show user info
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         st.metric("Usuário", user_info["username"])
     with col2:
-        role_display = "🔑 Super Admin" if user_info["is_superadmin"] else "👤 Usuário"
-        st.metric("Perfil", role_display)
+        role = user_info.get("role", "viewer")
+        st.metric("Perfil", get_role_display_name(role))
+    with col3:
+        auth_method = user_info.get("auth_method", "password")
+        method_icon = "🔑" if auth_method == "google" else "📧"
+        st.metric("Login via", f"{method_icon} {auth_method.title()}")
 
     st.info("👈 Use o menu lateral para navegar entre as páginas do dashboard.")
 
     st.markdown("---")
 
     # Logout button
-    if st.button("🚪 Fazer Logout", width="stretch"):
+    if st.button("🚪 Fazer Logout", use_container_width=True):
         AuthManager.logout()
         # Also clear Google OAuth session
         from src.auth.google_auth import google_logout
@@ -92,18 +97,41 @@ else:
 
     # Handle Google OAuth callback if returning from Google
     if is_google_oauth_enabled():
-        google_user = handle_google_login()
+        google_user, status = handle_google_login()
         if google_user:
             st.session_state.google_user = google_user
             user_name = google_user.get("name", google_user.get("email"))
-            st.success(
-                f"✅ Login com Google bem-sucedido! Bem-vindo(a), **{user_name}**!"
-            )
-            st.balloons()
-            import time
 
-            time.sleep(1)
-            st.rerun()
+            if status == "approved":
+                # Store role in session
+                st.session_state.role = google_user.get("role", "viewer")
+                st.session_state.user_id = google_user.get("user_id")
+                st.success(
+                    f"✅ Login com Google bem-sucedido! Bem-vindo(a), **{user_name}**!"
+                )
+                st.balloons()
+                import time
+
+                time.sleep(1)
+                st.rerun()
+            elif status == "pending":
+                st.warning("⏳ **Conta aguardando aprovação**")
+                st.info(
+                    f"Olá **{user_name}**! Sua conta foi criada e está aguardando "
+                    "aprovação de um administrador. Você receberá acesso em breve."
+                )
+            elif status == "rejected":
+                st.error("❌ **Acesso negado**")
+                st.info(
+                    "Sua conta foi analisada e o acesso não foi aprovado. "
+                    "Entre em contato com o administrador se acredita que isso é um erro."
+                )
+        elif status == "domain_blocked":
+            st.error("❌ **Domínio não permitido**")
+            st.info(
+                "Apenas emails corporativos são permitidos. "
+                "Use seu email @empresa.com.br para acessar."
+            )
 
     # Login form header
     st.markdown("### 🔓 Acesse sua conta")
@@ -133,7 +161,7 @@ else:
 
         col1, col2 = st.columns([3, 1])
         with col1:
-            submit = st.form_submit_button("🔓 Entrar", width="stretch")
+            submit = st.form_submit_button("🔓 Entrar", use_container_width=True)
         with col2:
             remember = st.checkbox("Lembrar", help="Manter sessão ativa")
 
@@ -150,7 +178,7 @@ else:
                         st.session_state.username = user.username
                         st.session_state.email = user.email
                         st.session_state.role = user.role
-                        st.session_state.is_superadmin = user.is_superadmin()
+                        st.session_state.is_superadmin = user.is_admin()
 
                         st.success(
                             f"✅ Login bem-sucedido! Bem-vindo(a), **{user.username}**!"
@@ -192,4 +220,4 @@ else:
 
     # Footer
     st.markdown("---")
-    st.caption("🔒 Acesso seguro e protegido • SDR Analytics Dashboard v0.9.0")
+    st.caption("🔒 Acesso seguro e protegido • SDR Analytics Dashboard v2.0.0")

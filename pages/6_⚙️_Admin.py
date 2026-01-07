@@ -15,6 +15,7 @@ import streamlit as st
 from src.auth.auth_manager import AuthManager
 from src.auth.database import SessionLocal
 from src.auth.models import AuditLog, User
+from src.auth.permissions import get_all_roles, get_role_display_name
 
 # Require superadmin access
 AuthManager.require_superadmin()
@@ -27,16 +28,111 @@ from src.dashboard_utils import render_user_sidebar
 render_user_sidebar()
 
 st.title("⚙️ Admin Panel - User Management")
-st.markdown("**Superadmin Only** - Manage users and view system logs")
+st.markdown("**Administração** - Gerenciar usuários e aprovar acessos")
 st.markdown("---")
 
 # Tabs for different admin functions
-tab1, tab2, tab3 = st.tabs(["👥 Users", "📋 Audit Logs", "➕ Create User"])
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["⏳ Pendentes", "👥 Usuários", "📋 Audit Logs", "➕ Criar Usuário"]
+)
 
 # ================================================================
-# TAB 1: USER MANAGEMENT
+# TAB 1: PENDING USERS (Google OAuth approval)
 # ================================================================
 with tab1:
+    st.header("⏳ Usuários Aguardando Aprovação")
+
+    db = SessionLocal()
+    try:
+        # Fetch pending users
+        pending_users = (
+            db.query(User)
+            .filter(User.status == "pending")
+            .order_by(User.created_at.desc())
+            .all()
+        )
+
+        if not pending_users:
+            st.success("✅ Nenhum usuário aguardando aprovação!")
+        else:
+            st.warning(f"⚠️ {len(pending_users)} usuário(s) aguardando aprovação")
+            st.markdown("---")
+
+            for user in pending_users:
+                with st.container():
+                    col1, col2, col3 = st.columns([2, 2, 2])
+
+                    with col1:
+                        if user.picture_url:
+                            st.image(user.picture_url, width=50)
+                        st.write(f"**{user.username}**")
+                        st.caption(user.email)
+
+                    with col2:
+                        st.write(
+                            f"🔑 Origem: {'Google OAuth' if user.oauth_provider else 'Senha'}"
+                        )
+                        st.write(
+                            f"📅 Solicitado: {user.created_at.strftime('%d/%m/%Y %H:%M')}"
+                        )
+
+                    with col3:
+                        # Role selection
+                        selected_role = st.selectbox(
+                            "Perfil",
+                            get_all_roles(),
+                            index=3,  # Default: viewer
+                            key=f"role_{user.id}",
+                            format_func=get_role_display_name,
+                        )
+
+                        col_approve, col_reject = st.columns(2)
+                        with col_approve:
+                            if st.button(
+                                "✅ Aprovar", key=f"approve_{user.id}", type="primary"
+                            ):
+                                user.status = "approved"
+                                user.role = selected_role
+                                db.commit()
+
+                                # Log action
+                                from src.auth.auth_manager import log_action
+
+                                log_action(
+                                    st.session_state.user_id,
+                                    "approve_user",
+                                    user.username,
+                                    {"role": selected_role},
+                                )
+
+                                st.success(f"Usuário {user.username} aprovado!")
+                                st.rerun()
+
+                        with col_reject:
+                            if st.button("❌ Rejeitar", key=f"reject_{user.id}"):
+                                user.status = "rejected"
+                                db.commit()
+
+                                from src.auth.auth_manager import log_action
+
+                                log_action(
+                                    st.session_state.user_id,
+                                    "reject_user",
+                                    user.username,
+                                )
+
+                                st.warning(f"Usuário {user.username} rejeitado.")
+                                st.rerun()
+
+                    st.markdown("---")
+
+    finally:
+        db.close()
+
+# ================================================================
+# TAB 2: USER MANAGEMENT
+# ================================================================
+with tab2:
     st.header("👥 User Management")
 
     db = SessionLocal()
@@ -51,25 +147,42 @@ with tab1:
             st.markdown("---")
 
             # Filters
-            col1, col2 = st.columns(2)
+            col1, col2, col3 = st.columns(3)
             with col1:
                 filter_role = st.selectbox(
-                    "Filter by Role", ["All", "superadmin", "user"], key="filter_role"
+                    "Filtrar por Perfil",
+                    ["Todos"] + get_all_roles(),
+                    key="filter_role",
+                    format_func=lambda x: (
+                        x if x == "Todos" else get_role_display_name(x)
+                    ),
                 )
             with col2:
                 filter_status = st.selectbox(
-                    "Filter by Status",
-                    ["All", "Active", "Inactive"],
+                    "Filtrar por Status",
+                    ["Todos", "Aprovado", "Pendente", "Rejeitado"],
                     key="filter_status",
+                )
+            with col3:
+                filter_active = st.selectbox(
+                    "Filtrar por Ativo",
+                    ["Todos", "Ativo", "Inativo"],
+                    key="filter_active",
                 )
 
             # Apply filters
             filtered_users = users
-            if filter_role != "All":
+            if filter_role != "Todos":
                 filtered_users = [u for u in filtered_users if u.role == filter_role]
-            if filter_status == "Active":
+            if filter_status == "Aprovado":
+                filtered_users = [u for u in filtered_users if u.status == "approved"]
+            elif filter_status == "Pendente":
+                filtered_users = [u for u in filtered_users if u.status == "pending"]
+            elif filter_status == "Rejeitado":
+                filtered_users = [u for u in filtered_users if u.status == "rejected"]
+            if filter_active == "Ativo":
                 filtered_users = [u for u in filtered_users if u.is_active]
-            elif filter_status == "Inactive":
+            elif filter_active == "Inativo":
                 filtered_users = [u for u in filtered_users if not u.is_active]
 
             st.markdown(f"**Showing {len(filtered_users)} of {len(users)} users**")
@@ -272,14 +385,16 @@ with tab3:
             )
 
         new_role = st.selectbox(
-            "Role *",
-            ["user", "superadmin"],
-            help="user = Dashboard access | superadmin = Full system access",
+            "Perfil *",
+            get_all_roles(),
+            index=3,  # Default: viewer
+            format_func=get_role_display_name,
+            help="Define as permissões do usuário",
         )
 
         st.markdown("---")
         submit = st.form_submit_button(
-            "✅ Create User", type="primary", width="stretch"
+            "✅ Criar Usuário", type="primary", use_container_width=True
         )
 
         if submit:

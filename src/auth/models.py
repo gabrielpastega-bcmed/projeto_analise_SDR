@@ -33,17 +33,43 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
-    email: Mapped[str] = mapped_column(String(100), unique=True, nullable=False, index=True)
-    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    role: Mapped[str] = mapped_column(String(20), nullable=False, default="user")
+    username: Mapped[str] = mapped_column(
+        String(50), unique=True, nullable=False, index=True
+    )
+    email: Mapped[str] = mapped_column(
+        String(100), unique=True, nullable=False, index=True
+    )
+    password_hash: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )  # Optional for OAuth
+    role: Mapped[str] = mapped_column(String(20), nullable=False, default="viewer")
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow, nullable=False
+    )
     last_login: Mapped[datetime | None] = mapped_column(nullable=True, default=None)
-    created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True, default=None)
+    created_by: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True, default=None
+    )
+
+    # OAuth fields
+    oauth_provider: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, default=None
+    )  # "google", "microsoft", etc.
+    oauth_id: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, default=None
+    )  # Unique ID from OAuth provider
+    picture_url: Mapped[str | None] = mapped_column(
+        String(500), nullable=True, default=None
+    )  # Profile picture URL
+    status: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="approved"
+    )  # "pending", "approved", "rejected"
 
     # Relationships - using string references for forward declarations
-    sessions: Mapped[list["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    sessions: Mapped[list["Session"]] = relationship(
+        back_populates="user", cascade="all, delete-orphan"
+    )
     audit_logs: Mapped[list["AuditLog"]] = relationship(back_populates="user")
     preferences: Mapped["UserPreferences | None"] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
@@ -76,16 +102,30 @@ class User(Base):
         Returns:
             True if password matches, False otherwise
         """
+        if not self.password_hash:
+            return False  # OAuth users don't have passwords
         password_bytes = password.encode("utf-8")
         hash_bytes = self.password_hash.encode("utf-8")
         return bcrypt.checkpw(password_bytes, hash_bytes)
 
+    def is_admin(self) -> bool:
+        """Check if user has admin role."""
+        return self.role == "admin"
+
     def is_superadmin(self) -> bool:
-        """Check if user has superadmin role."""
-        return self.role == "superadmin"
+        """Check if user has admin role (alias for backward compatibility)."""
+        return self.role == "admin"
+
+    def is_approved(self) -> bool:
+        """Check if user is approved to access the system."""
+        return self.status == "approved"
+
+    def is_oauth_user(self) -> bool:
+        """Check if user logged in via OAuth."""
+        return self.oauth_provider is not None
 
     def __repr__(self) -> str:
-        return f"<User(id={self.id}, username='{self.username}', role='{self.role}')>"
+        return f"<User(id={self.id}, username='{self.username}', role='{self.role}', status='{self.status}')>"
 
 
 class Session(Base):
@@ -106,11 +146,19 @@ class Session(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
-    token: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
-    created_at: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=False)
+    token: Mapped[str] = mapped_column(
+        String(255), unique=True, nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow, nullable=False
+    )
     expires_at: Mapped[datetime] = mapped_column(nullable=False)
-    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True, default=None)
-    user_agent: Mapped[str | None] = mapped_column(String(255), nullable=True, default=None)
+    ip_address: Mapped[str | None] = mapped_column(
+        String(45), nullable=True, default=None
+    )
+    user_agent: Mapped[str | None] = mapped_column(
+        String(255), nullable=True, default=None
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="sessions")
@@ -141,8 +189,12 @@ class AuditLog(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     action: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
-    resource: Mapped[str | None] = mapped_column(String(100), nullable=True, default=None)
-    timestamp: Mapped[datetime] = mapped_column(default=datetime.utcnow, nullable=False, index=True)
+    resource: Mapped[str | None] = mapped_column(
+        String(100), nullable=True, default=None
+    )
+    timestamp: Mapped[datetime] = mapped_column(
+        default=datetime.utcnow, nullable=False, index=True
+    )
     details: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
 
     # Relationships
@@ -167,8 +219,12 @@ class UserPreferences(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     theme: Mapped[str] = mapped_column(String(10), default="light", nullable=False)
-    default_filters: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
-    dashboard_layout: Mapped[str | None] = mapped_column(Text, nullable=True, default=None)
+    default_filters: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None
+    )
+    dashboard_layout: Mapped[str | None] = mapped_column(
+        Text, nullable=True, default=None
+    )
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="preferences")

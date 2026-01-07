@@ -2,17 +2,27 @@
 Google OAuth integration for Streamlit authentication.
 
 Uses streamlit-google-auth package for handling OAuth flow.
+Integrates with database to store and manage Google users.
 """
 
 import os
-from typing import Optional
+from datetime import datetime
+from typing import Optional, Tuple
 
 import streamlit as st
+
+from .database import SessionLocal
+from .models import User
 
 
 def is_google_oauth_enabled() -> bool:
     """Check if Google OAuth is enabled via environment variable."""
     return os.getenv("GOOGLE_OAUTH_ENABLED", "false").lower() == "true"
+
+
+def get_allowed_domain() -> str:
+    """Get allowed email domain for Google OAuth."""
+    return os.getenv("ALLOWED_EMAIL_DOMAIN", "")
 
 
 def get_google_oauth_config() -> dict:
@@ -39,7 +49,9 @@ def init_google_auth():
     config = get_google_oauth_config()
 
     if not config["client_id"] or not config["client_secret"]:
-        st.warning("⚠️ Google OAuth não configurado. Verifique as variáveis de ambiente.")
+        st.warning(
+            "⚠️ Google OAuth não configurado. Verifique as variáveis de ambiente."
+        )
         return None
 
     try:
@@ -58,30 +70,135 @@ def init_google_auth():
         return None
 
 
-def handle_google_login() -> Optional[dict]:
+def is_email_allowed(email: str) -> bool:
     """
-    Handle Google OAuth login flow.
+    Check if email is from allowed domain.
+
+    Args:
+        email: Email address to check
 
     Returns:
-        User info dict if authenticated, None otherwise
+        True if email is from allowed domain or no domain restriction
+    """
+    allowed_domain = get_allowed_domain()
+    if not allowed_domain:
+        return True  # No domain restriction
+    return email.lower().endswith(f"@{allowed_domain.lower()}")
+
+
+def get_or_create_google_user(google_info: dict) -> Tuple[Optional[User], str]:
+    """
+    Get existing user or create new one from Google OAuth data.
+
+    Args:
+        google_info: Dictionary with Google user info (email, name, picture, oauth_id)
+
+    Returns:
+        Tuple of (User or None, status) where status can be:
+        - "approved": User is approved and can access
+        - "pending": User is waiting for admin approval
+        - "rejected": User was rejected
+        - "domain_blocked": Email domain not allowed
+    """
+    email = google_info.get("email", "")
+
+    # Check domain restriction
+    if not is_email_allowed(email):
+        return None, "domain_blocked"
+
+    db = SessionLocal()
+    try:
+        # Look for existing user by email
+        user = db.query(User).filter(User.email == email).first()
+
+        if user:
+            # Update OAuth info and last login
+            user.oauth_provider = "google"
+            user.oauth_id = google_info.get("oauth_id")
+            user.picture_url = google_info.get("picture")
+            user.last_login = datetime.utcnow()
+            db.commit()
+            db.refresh(user)
+
+            return user, user.status
+
+        # Create new user with pending status
+        username = email.split("@")[0]
+
+        # Ensure unique username
+        base_username = username
+        counter = 1
+        while db.query(User).filter(User.username == username).first():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        user = User(
+            username=username,
+            email=email,
+            oauth_provider="google",
+            oauth_id=google_info.get("oauth_id"),
+            picture_url=google_info.get("picture"),
+            role="viewer",  # Default role for new users
+            status="pending",  # Requires admin approval
+            password_hash=None,  # OAuth users don't have password
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        return user, "pending"
+
+    except Exception as e:
+        db.rollback()
+        st.error(f"Erro ao criar usuário: {e}")
+        return None, "error"
+    finally:
+        db.close()
+
+
+def handle_google_login() -> Tuple[Optional[dict], str]:
+    """
+    Handle Google OAuth login flow with database integration.
+
+    Returns:
+        Tuple of (user_info dict or None, status string)
+        Status can be: "approved", "pending", "rejected", "domain_blocked", "not_authenticated"
     """
     authenticator = init_google_auth()
 
     if authenticator is None:
-        return None
+        return None, "not_configured"
 
     # Check if already authenticated via Google
     authenticator.check_authentification()
 
     if st.session_state.get("connected", False):
-        return {
+        google_info = {
             "oauth_id": st.session_state.get("oauth_id"),
             "email": st.session_state.get("user_info", {}).get("email"),
             "name": st.session_state.get("user_info", {}).get("name"),
             "picture": st.session_state.get("user_info", {}).get("picture"),
         }
 
-    return None
+        # Get or create user in database
+        user, status = get_or_create_google_user(google_info)
+
+        if user:
+            # Store user info in session for AuthManager
+            st.session_state["google_user"] = {
+                "oauth_id": user.oauth_id,
+                "email": user.email,
+                "name": user.username,
+                "picture": user.picture_url,
+                "role": user.role,
+                "status": user.status,
+                "user_id": user.id,
+            }
+            return st.session_state["google_user"], status
+
+        return None, status
+
+    return None, "not_authenticated"
 
 
 def render_google_login_button() -> bool:

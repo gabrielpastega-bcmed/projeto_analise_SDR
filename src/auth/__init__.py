@@ -5,4 +5,7 @@ This module provides user authentication, session management,
 and role-based access control (RBAC) for the SDR Analytics dashboard.
 """
 
-__version__ = "0.1.0"
+from .permissions import Permission, Role, has_permission
+
+__version__ = "1.0.0"
+__all__ = ["Permission", "Role", "has_permission"]

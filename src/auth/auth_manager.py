@@ -61,7 +61,9 @@ class AuthManager:
         db = SessionLocal()
         try:
             # Find active user by username
-            user = db.query(User).filter(User.username == username, User.is_active).first()
+            user = (
+                db.query(User).filter(User.username == username, User.is_active).first()
+            )
 
             # Verify password
             if user and user.check_password(password):
@@ -114,11 +116,16 @@ class AuthManager:
             True if user is logged in, False otherwise
         """
         # Check traditional password login
-        if "user_id" in st.session_state and st.session_state.get("user_id") is not None:
+        if (
+            "user_id" in st.session_state
+            and st.session_state.get("user_id") is not None
+        ):
             return True
 
         # Check Google OAuth login
-        if st.session_state.get("connected", False) and st.session_state.get("google_user"):
+        if st.session_state.get("connected", False) and st.session_state.get(
+            "google_user"
+        ):
             return True
 
         return False
@@ -140,7 +147,9 @@ class AuthManager:
             if google_user is not None:  # Type guard for mypy
                 return {
                     "user_id": google_user.get("oauth_id"),
-                    "username": google_user.get("name", google_user.get("email", "").split("@")[0]),
+                    "username": google_user.get(
+                        "name", google_user.get("email", "").split("@")[0]
+                    ),
                     "email": google_user.get("email"),
                     "role": "user",  # Default role for Google users
                     "is_superadmin": False,  # Google users are not superadmins by default
@@ -171,40 +180,108 @@ class AuthManager:
             st.info("👈 Use o menu lateral para fazer login.")
             st.stop()
 
-    @staticmethod
-    def require_superadmin() -> None:
-        """
-        Require superadmin role to proceed.
-
-        If user is not authenticated or not a superadmin, shows error and stops.
-        """
-        AuthManager.require_auth()
-
-        if not st.session_state.get("is_superadmin", False):
-            st.error("❌ Acesso negado. Apenas superadministradores podem acessar esta página.")
+        # Check if user is approved (for Google OAuth users)
+        user = AuthManager.get_current_user()
+        if user and user.get("status") == "pending":
+            st.warning("⏳ Sua conta está aguardando aprovação de um administrador.")
+            st.info("Você receberá acesso assim que sua conta for aprovada.")
+            st.stop()
+        elif user and user.get("status") == "rejected":
+            st.error(
+                "❌ Sua conta foi rejeitada. Entre em contato com o administrador."
+            )
             st.stop()
 
     @staticmethod
-    def check_permission(permission: str) -> bool:
+    def require_admin() -> None:
+        """
+        Require admin role to proceed.
+
+        If user is not authenticated or not an admin, shows error and stops.
+        """
+        AuthManager.require_auth()
+
+        role = st.session_state.get("role")
+        if role != "admin":
+            st.error(
+                "❌ Acesso negado. Apenas administradores podem acessar esta página."
+            )
+            st.stop()
+
+    @staticmethod
+    def require_superadmin() -> None:
+        """
+        Require superadmin/admin role to proceed (alias for backward compatibility).
+
+        If user is not authenticated or not an admin, shows error and stops.
+        """
+        AuthManager.require_admin()
+
+    @staticmethod
+    def require_role(allowed_roles: list[str]) -> None:
+        """
+        Require one of the specified roles to proceed.
+
+        Args:
+            allowed_roles: List of role strings that can access (e.g., ["admin", "supervisor"])
+        """
+        AuthManager.require_auth()
+
+        role = st.session_state.get("role")
+        if role not in allowed_roles:
+            st.error(
+                f"❌ Acesso negado. Seu perfil ({role}) não tem permissão para esta página."
+            )
+            st.stop()
+
+    @staticmethod
+    def require_permission(permission) -> None:
+        """
+        Require a specific permission to proceed.
+
+        Args:
+            permission: Permission enum value from src.auth.permissions
+        """
+        from .permissions import has_permission
+
+        AuthManager.require_auth()
+
+        role = st.session_state.get("role", "viewer")
+        if not has_permission(role, permission):
+            st.error(
+                "❌ Acesso negado. Você não tem permissão para acessar esta página."
+            )
+            st.stop()
+
+    @staticmethod
+    def check_permission(permission) -> bool:
         """
         Check if current user has specific permission.
 
         Args:
-            permission: Permission to check
+            permission: Permission string or Permission enum
 
         Returns:
             True if user has permission, False otherwise
         """
+        from .permissions import Permission, has_permission
+
         if not AuthManager.is_authenticated():
             return False
 
-        role = st.session_state.get("role")
+        role = st.session_state.get("role", "viewer")
 
-        # Superadmins have all permissions
-        if role == "superadmin":
-            return True
+        # Handle string permissions for backward compatibility
+        if isinstance(permission, str):
+            try:
+                permission = Permission(permission)
+            except ValueError:
+                # Unknown permission string
+                return role == "admin"
 
-        # Define permissions for regular users
-        user_permissions = ["view_dashboard", "export_pdf", "view_data"]
+        return has_permission(role, permission)
 
-        return permission in user_permissions
+    @staticmethod
+    def get_user_role() -> str:
+        """Get current user's role."""
+        return st.session_state.get("role", "viewer")
